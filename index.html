@@ -8,8 +8,8 @@
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css"/>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster-src.js"></script>
     <style>
         html,
@@ -115,6 +115,30 @@
         #searchButton:hover {
             background: #0056b3;
         }
+
+        #health {
+            width: 250px;
+            height: 20px;
+            border: 2px solid #222;
+            border-radius: 10px;
+            background-color: #ccc;
+            overflow: hidden;
+        }
+
+        #health::-webkit-progress-bar {
+            background-color: #ddd;
+            border-radius: 10px;
+        }
+
+        #health::-webkit-progress-value {
+            background-color: #4caf50;
+            border-radius: 10px;
+        }
+
+        #health::-moz-progress-bar {
+            background-color: #4caf50;
+            border-radius: 10px;
+        }
     </style>
 </head>
 
@@ -149,11 +173,14 @@
                 <label><input type="checkbox" value="post_office"> Post Office</label>
             </div>
         </div>
+        <div id="hud">
+            <label for="health">❤️ Health:</label>
+            <progress id="health" value="100" max="100"></progress>
+        </div>
         <div gap="50px">
             <span id="timer">Timer: 00:00:00</span>
             <input id="startGameButton" type="button" value="Game start!" style="width: 120px; height: 40px;" />
         </div>
-
     </div>
 
     <script type="module" src="app.js"></script>

@@ -59,6 +59,10 @@ const radiusValueLabel = document.getElementById("radiusValue");
 const searchBox = document.getElementById("searchBox");
 const searchButton = document.getElementById("searchButton");
 
+let playerHP = 100;
+const healthBar = document.getElementById("health");
+let hpInterval = null;
+
 // Update radius label dynamically
 radiusSlider.addEventListener("input", (e) => {
   radiusValueLabel.textContent = e.target.value;
@@ -130,6 +134,29 @@ map.on("dblclick", async function (event) {
   await addPlayerMarker(event.latlng);
 });
 
+async function startHPMonitor() {
+  if (hpInterval) clearInterval(hpInterval);
+
+  hpInterval = setInterval(async () => {
+    if (!playerMarker || !currentCircle) return;
+
+    const playerPos = playerMarker.getLatLng();
+    const distance = map.distance(playerPos, currentCircle.getLatLng());
+    const isOutside = distance > currentCircle.getRadius();
+
+    if (isOutside) {
+      playerHP = Math.max(0, playerHP - 5);
+      healthBar.value = playerHP;
+
+      if (playerHP <= 0) {
+        clearInterval(hpInterval);
+        alert("💀 You died! Game over.");
+        await handleGameOver()
+      }
+    }
+  }, 1000);
+}
+
 async function handlePlayerMove(e) {
   const playerPos = e.target.getLatLng();
 
@@ -154,12 +181,12 @@ async function handlePlayerMove(e) {
 
       // Optional: small popup or animation
       L.popup({
-        closeButton: false,
+        closeButton: true,
         autoClose: true,
         offset: [0, -15],
       })
         .setLatLng([lat, lng])
-        .setContent(`✅ Objective reached! Current score: ${score}`)
+        .setContent(`<h3> ✅ Objective reached! </h3> <p> Current score: ${score} </p>`)
         .openOn(map);
     }
   });
@@ -220,6 +247,13 @@ async function loadObjectives(selectedTypes, radius) {
   map.addLayer(objectiveClusterLayer);
 }
 
+async function handleGameOver() {
+    map.removeLayer(objectiveClusterLayer);
+    map.removeLayer(currentCircle);
+    clearInterval(shrinkInterval);
+    alert(`Game ended! \nTotal score achieved: ${score}`);
+}
+
 async function gameStart() {
   const selected = Array.from(
     document.querySelectorAll("#checkboxes input:checked")
@@ -236,6 +270,9 @@ async function gameStart() {
   // Reset state
   if (currentCircle) map.removeLayer(currentCircle);
   currentRadius = parseInt(radiusSlider.value, 10);
+  playerHP = 100
+  healthBar.value = playerHP;
+  await startHPMonitor() 
 
   // Draw initial circle
   currentCircle = L.circle(city_coord, {
@@ -264,12 +301,9 @@ async function gameStart() {
   shrinkInterval = setInterval(async () => {
     currentRadius -= SHRINK_RADIUS;
 
-    if (currentRadius <= 0) {
-      map.removeLayer(objectiveClusterLayer);
-      map.removeLayer(currentCircle);
-      clearInterval(shrinkInterval);
-      alert("The safe zone has fully closed!");
-      return;
+    if (currentRadius <= 0 || playerHP <= 0) {
+      await handleGameOver()
+      return
     }
 
     map.removeLayer(currentCircle);
