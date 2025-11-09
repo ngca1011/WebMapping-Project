@@ -33,8 +33,6 @@ app.get("/geojson", async (req, res) => {
         .map(
           (type) => `
         node["amenity"="${type}"](around:${radius},${lat},${lon});
-        way["amenity"="${type}"](around:${radius},${lat},${lon});
-        relation["amenity"="${type}"](around:${radius},${lat},${lon});
       `
         )
         .join("\n")}
@@ -60,8 +58,40 @@ app.get("/geojson", async (req, res) => {
 
     res.json(geojson);
   } catch (err) {
-    console.error("❌ Error fetching Overpass data:", err);
+    console.error("Error fetching Overpass data:", err);
     res.status(500).json({ error: "Failed to fetch GeoJSON data" });
+  }
+});
+
+app.get("/geocode", async (req, res) => {
+  const { q } = req.query;
+  if (!q) {
+    return res.status(400).json({ error: "Missing query parameter 'q'" });
+  }
+
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+      q
+    )}`;
+
+    const response = await fetch(url, {
+      headers: {
+        "Accept-Language": "en",
+        "User-Agent": "YourAppName/1.0 (your.email@example.com)", // Required by Nominatim’s usage policy
+      },
+    });
+
+    if (!response.ok) {
+      return res
+        .status(response.status)
+        .json({ error: `Nominatim error ${response.status}` });
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    console.error("Geocoding error:", err);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 

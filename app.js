@@ -1,15 +1,20 @@
-import {createAmenityPopup} from './helper.js';
+/* eslint-disable no-undef */
+import {
+  createAmenityPopup,
+  startCountdown,
+  countdownInterval,
+} from "./helper.js";
 
-const coord_ka = [49.01578, 8.39137];
+let city_coord = [49.01578, 8.39137];
 const zoom_level = 12;
 const map_url = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
-const map = L.map("map", { center: coord_ka, zoom: zoom_level });
+const map = L.map("map", { center: city_coord, zoom: zoom_level });
 L.tileLayer(map_url, {
   attribution:
     '© <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
 }).addTo(map);
 
-const icon_size = 30;
+const icon_size = 25;
 
 const bar_icon = L.icon({
   iconUrl: "./assets/bar.png",
@@ -35,51 +40,161 @@ const restaurant_icon = L.icon({
   iconSize: [icon_size, icon_size],
 });
 
+const player_icon = L.icon({
+  iconUrl: "./assets/player.png",
+  iconSize: [icon_size + 5, icon_size + 5],
+});
+
 let currentCircle = null;
 let currentRadius = 6000;
 let shrinkInterval = null;
-let countdownInterval = null;
 let objectiveLayer = null;
+let objectiveClusterLayer = null;
+let score = 0
 const SHRINK_INTERVAL_MS = 60 * 1000; // 60s (for demo)
 const SHRINK_RADIUS = 1000;
 
-function onMapDoubleClick(e) {
-  const marker = L.marker(e.latlng).addTo(map);
-  marker.on("dblclick", () => map.removeLayer(marker));
-}
-map.on("dblclick", onMapDoubleClick);
+const radiusSlider = document.getElementById("radiusRange");
+const radiusValueLabel = document.getElementById("radiusValue");
+const searchBox = document.getElementById("searchBox");
+const searchButton = document.getElementById("searchButton");
 
-function startCountdown(durationMs) {
-  const timerEl = document.getElementById("timer");
-  let remaining = durationMs / 1000;
-  if (countdownInterval) clearInterval(countdownInterval);
+// Update radius label dynamically
+radiusSlider.addEventListener("input", (e) => {
+  radiusValueLabel.textContent = e.target.value;
+});
 
-  function updateTimer() {
-    const mins = String(Math.floor((remaining % 3600) / 60)).padStart(2, "0");
-    const secs = String(Math.floor(remaining % 60)).padStart(2, "0");
-    timerEl.textContent = `Next shrink in: ${mins}:${secs}`;
-    if (remaining <= 0) clearInterval(countdownInterval);
-    remaining--;
+// Search location logic
+searchButton.addEventListener("click", async () => {
+  const query = searchBox.value.trim();
+  if (!query) {
+    alert("Please enter an address or place name!");
+    return;
   }
 
-  updateTimer();
-  countdownInterval = setInterval(updateTimer, 1000);
+  const url = `http://localhost:3000/geocode?q=${encodeURIComponent(query)}`;
+
+  searchButton.textContent = "⏳";
+  searchButton.disabled = true;
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Geocoding failed (${response.status})`);
+
+    const results = await response.json();
+    if (results.length === 0) {
+      alert(`No results found for "${query}"`);
+      return;
+    }
+
+    const { lat, lon, display_name } = results[0];
+    city_coord = [parseFloat(lat), parseFloat(lon)];
+
+    map.flyTo(city_coord, 14);
+
+    L.marker(city_coord)
+      .addTo(map)
+      .bindPopup(`<b>${display_name}</b>`)
+      .openPopup();
+  } catch (err) {
+    console.error(err);
+    alert("An error occurred while searching. Please try again.");
+  } finally {
+    searchButton.textContent = "🔍";
+    searchButton.disabled = false;
+  }
+});
+
+// --- Player Logic ---
+let playerMarker = null;
+export let visitedObjectives = new Set(); // store feature IDs or coordinate strings
+
+// Add player marker
+async function addPlayerMarker(latlng) {
+  if (playerMarker) map.removeLayer(playerMarker);
+
+  playerMarker = L.marker(latlng, {
+    draggable: true,
+    icon: player_icon
+  })
+    .addTo(map)
+    .bindPopup("Player")
+    .openPopup();
+
+  // Check proximity when dragged
+  playerMarker.on("moveend", handlePlayerMove);
+}
+
+// Add Player based on double click
+map.on("dblclick", async function (event) {
+  await addPlayerMarker(event.latlng);
+});
+
+async function handlePlayerMove(e) {
+  const playerPos = e.target.getLatLng();
+
+  // Loop through objective layers
+  if (!objectiveClusterLayer) return;
+
+  objectiveClusterLayer.eachLayer((layer) => {
+    const { lat, lng } = layer.getLatLng();
+
+    // Skip if already visited
+    const key = `${lat},${lng}`;
+    if (visitedObjectives.has(key)) return;
+
+    const dist = map.distance(playerPos, L.latLng(lat, lng));
+
+    if (dist <= 50) {
+      // Objective reached
+      visitedObjectives.add(key);
+      map.removeLayer(layer);
+      objectiveClusterLayer.removeLayer(layer);
+      score++
+
+      // Optional: small popup or animation
+      L.popup({
+        closeButton: false,
+        autoClose: true,
+        offset: [0, -15],
+      })
+        .setLatLng([lat, lng])
+        .setContent(`✅ Objective reached! Current score: ${score}`)
+        .openOn(map);
+    }
+  });
 }
 
 async function loadObjectives(selectedTypes, radius) {
   const url = `http://localhost:3000/geojson?types=${selectedTypes.join(
     ","
-  )}&lat=${coord_ka[0]}&lon=${coord_ka[1]}&radius=${radius}`;
-  const res = await fetch(url);
-  const geojson = await res.json();
+  )}&lat=${city_coord[0]}&lon=${city_coord[1]}&radius=${radius}`;
+
+  let res = await fetch(url);
+
+  while (res.status != 200) {
+    res = await fetch(url);
+  }
+
+  let geojson = await res.json();
 
   // Remove old objectives
-  if (objectiveLayer) {
-    map.removeLayer(objectiveLayer);
+  if (objectiveClusterLayer) {
+    map.removeLayer(objectiveClusterLayer);
   }
 
   // Add new ones
+  objectiveClusterLayer = new L.markerClusterGroup({
+    disableClusteringAtZoom: 18,
+    spiderfyOnMaxZoom: false,
+  });
   objectiveLayer = L.geoJSON(geojson, {
+    filter: function (feature) {
+      if (!feature.geometry || !feature.geometry.coordinates) return false;
+      const [lng, lat] = feature.geometry.coordinates;
+      const key = `${lat},${lng}`;
+      return !visitedObjectives.has(key);
+    },
     pointToLayer: function (feature, latlng) {
       switch (feature.properties.amenity) {
         case "bar":
@@ -96,18 +211,16 @@ async function loadObjectives(selectedTypes, radius) {
           return L.marker(latlng);
       }
     },
-    onEachFeature: function (feature, layer) {
-      const popupContent = createAmenityPopup(feature);
+    onEachFeature: async function (feature, layer) {
+      const popupContent = await createAmenityPopup(feature);
       layer.bindPopup(popupContent);
     },
-  }).addTo(map);
+  });
+  objectiveClusterLayer.addLayer(objectiveLayer);
+  map.addLayer(objectiveClusterLayer);
 }
 
 async function gameStart() {
-
-  // show Loading
-  document.getElementById("loadingOverlay").style.display = "flex";
-
   const selected = Array.from(
     document.querySelectorAll("#checkboxes input:checked")
   ).map((cb) => cb.value);
@@ -117,12 +230,15 @@ async function gameStart() {
     return;
   }
 
+  // show Loading
+  document.getElementById("loadingOverlay").style.display = "flex";
+
   // Reset state
   if (currentCircle) map.removeLayer(currentCircle);
-  currentRadius = 6000;
+  currentRadius = parseInt(radiusSlider.value, 10);
 
   // Draw initial circle
-  currentCircle = L.circle(coord_ka, {
+  currentCircle = L.circle(city_coord, {
     radius: currentRadius,
     color: "#6495ED",
   }).addTo(map);
@@ -131,7 +247,7 @@ async function gameStart() {
   if (countdownInterval) clearInterval(countdownInterval);
 
   // Load initial objectives
-  if (objectiveLayer) map.removeLayer(objectiveLayer);
+  if (objectiveClusterLayer) map.removeLayer(objectiveClusterLayer);
   await loadObjectives(selected, currentRadius);
 
   document.getElementById("loadingOverlay").style.display = "none";
@@ -142,14 +258,14 @@ async function gameStart() {
     )}\nSafe zone will shrink every 60 seconds.`
   );
 
-  startCountdown(SHRINK_INTERVAL_MS);
+  await startCountdown(SHRINK_INTERVAL_MS);
 
   // Shrink circle every interval
   shrinkInterval = setInterval(async () => {
     currentRadius -= SHRINK_RADIUS;
 
     if (currentRadius <= 0) {
-      map.removeLayer(objectiveLayer);
+      map.removeLayer(objectiveClusterLayer);
       map.removeLayer(currentCircle);
       clearInterval(shrinkInterval);
       alert("The safe zone has fully closed!");
@@ -158,15 +274,14 @@ async function gameStart() {
 
     map.removeLayer(currentCircle);
 
-    currentCircle = L.circle(coord_ka, {
+    currentCircle = L.circle(city_coord, {
       radius: currentRadius,
       color: "#6495ED",
     }).addTo(map);
 
     // Reload objectives for new radius
     await loadObjectives(selected, currentRadius);
-
-    startCountdown(SHRINK_INTERVAL_MS);
+    await startCountdown(SHRINK_INTERVAL_MS);
   }, SHRINK_INTERVAL_MS);
 }
 

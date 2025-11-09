@@ -3,11 +3,14 @@
 
 <head>
     <meta charset="utf-8">
-    <title>Battle Royale</title>
+    <title>City Explorer - Battle Royale</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css"/>
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster-src.js"></script>
     <style>
         html,
         body {
@@ -48,8 +51,13 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         #bottom-bar {
@@ -60,11 +68,70 @@
             justify-content: space-between;
             align-items: center;
         }
+
+        #configPanel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+            font-family: sans-serif;
+            width: 220px;
+        }
+
+        .config-item {
+            margin-bottom: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        #radiusRange {
+            width: 100%;
+        }
+
+        #searchBox {
+            flex: 1;
+            padding: 6px 8px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        #searchButton {
+            padding: 6px 10px;
+            margin-top: 4px;
+            border: none;
+            background: lightblue;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        #searchButton:hover {
+            background: #0056b3;
+        }
     </style>
 </head>
 
 <body>
     <div id="map"></div>
+
+    <div id="configPanel">
+        <div class="config-item">
+            <label for="radiusRange">Initial Radius: <span id="radiusValue">6000</span> m</label>
+            <input type="range" id="radiusRange" min="1000" max="8000" step="500" value="6000" />
+        </div>
+
+        <div class="config-item">
+            <input type="text" id="searchBox" placeholder="Search for a location..." />
+            <button id="searchButton">🔍</button>
+        </div>
+    </div>
 
     <div id="loadingOverlay">
         <div class="spinner"></div>
@@ -90,6 +157,7 @@
     </div>
 
     <script type="module" src="app.js"></script>
+    <script type="module" src="helper.js"></script>
 </body>
 
 </html>

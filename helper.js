@@ -1,4 +1,6 @@
-export function createAmenityPopup(feature) {
+export let countdownInterval = null;
+
+export async function createAmenityPopup(feature) {
   const p = feature.properties || {};
   const type = p.amenity || "unknown";
 
@@ -76,3 +78,22 @@ export function createAmenityPopup(feature) {
   html += `</div>`;
   return html;
 }
+
+
+export async function startCountdown(durationMs) {
+  let timerEl = document.getElementById("timer");
+  let remaining = durationMs / 1000;
+  if (countdownInterval) clearInterval(countdownInterval);
+
+  function updateTimer() {
+    const mins = String(Math.floor((remaining % 3600) / 60)).padStart(2, "0");
+    const secs = String(Math.floor(remaining % 60)).padStart(2, "0");
+    timerEl.textContent = `Next shrink in: ${mins}:${secs}`;
+    if (remaining <= 0) clearInterval(countdownInterval);
+    remaining--;
+  }
+
+  updateTimer();
+  countdownInterval = setInterval(updateTimer, 1000);
+}
+
