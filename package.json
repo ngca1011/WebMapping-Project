@@ -1,12 +1,32 @@
 {
   "type": "module",
   "dependencies": {
+    "body-parser": "^2.2.1",
     "cors": "^2.8.5",
-    "express": "^5.1.0"
+    "express": "^5.2.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "eslint": "^9.39.1",
     "globals": "^16.5.0"
-  }
+  },
+  "name": "webmapping-project",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ngca1011/WebMapping-Project.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ngca1011/WebMapping-Project/issues"
+  },
+  "homepage": "https://github.com/ngca1011/WebMapping-Project#readme"
 }

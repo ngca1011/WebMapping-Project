@@ -1,9 +1,10 @@
-<!doctype html>
-<html lang="de">
+<!DOCTYPE html>
+<html lang="en">
 
 <head>
-    <meta charset="utf-8">
-    <title>City Explorer - Battle Royale</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>City Explorer - 2 Player Battle Royale (Smooth & Lag-Free)</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
@@ -11,16 +12,21 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster-src.js"></script>
+
     <style>
         html,
         body {
             height: 100%;
+            margin: 0;
             display: flex;
             flex-direction: column;
+            font-family: sans-serif;
+            overflow: hidden;
         }
 
         #map {
             flex: 1;
+            min-height: 50vh;
         }
 
         #loadingOverlay {
@@ -29,15 +35,14 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.6);
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             z-index: 9999;
             color: white;
-            font-family: sans-serif;
             font-size: 1.2em;
-            display: none;
         }
 
         .spinner {
@@ -60,84 +65,199 @@
             }
         }
 
-        #bottom-bar {
-            padding: 10px;
-            background: #f5f5f5;
-            border-top: 1px solid #ccc;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
         #configPanel {
             position: absolute;
             top: 10px;
             left: 10px;
             z-index: 1000;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 12px;
-            border-radius: 8px;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-            font-family: sans-serif;
-            width: 220px;
+            background: rgba(255, 255, 255, 0.98);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+            width: clamp(250px, 90vw, 320px);
+            max-height: 90vh;
+            overflow-y: auto;
+            transition: all 0.3s ease-in-out;
+        }
+
+        #configPanel.game-active {
+            opacity: 0.8;
+            transform: scale(0.95);
         }
 
         .config-item {
-            margin-bottom: 10px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 8px;
+        }
+
+        label {
+            font-weight: 500;
+            color: #333;
         }
 
         #radiusRange {
             width: 100%;
         }
 
+        .search-area {
+            display: flex;
+            gap: 5px;
+        }
+
         #searchBox {
             flex: 1;
-            padding: 6px 8px;
+            padding: 10px;
             border: 1px solid #ccc;
             border-radius: 6px;
             font-size: 14px;
         }
 
-        #searchButton {
-            padding: 6px 10px;
-            margin-top: 4px;
+        .btn {
+            padding: 10px 18px;
             border: none;
-            background: lightblue;
-            color: white;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 15px;
+            font-weight: bold;
+            transition: all 0.2s;
         }
 
-        #searchButton:hover {
-            background: #0056b3;
+        .btn:hover:not(:disabled) {
+            opacity: 0.9;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
         }
 
-        #health {
-            width: 250px;
-            height: 20px;
-            border: 2px solid #222;
-            border-radius: 10px;
-            background-color: #ccc;
+        .btn:disabled {
+            background-color: #aaa !important;
+            cursor: default;
+        }
+
+        #startGameButton {
+            background-color: #28a745;
+            color: white;
+            margin-top: 10px;
+        }
+
+        #endGameButton {
+            background-color: #f44336;
+            color: white;
+        }
+
+        #bottom-bar {
+            padding: 15px 20px;
+            background: linear-gradient(to right, #ffffff, #f9f9f9);
+            border-top: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        #player-huds {
+            display: flex;
+            gap: 25px;
+            align-items: center;
+        }
+
+        .player-hud {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            padding: 10px;
+            border-radius: 8px;
+            background: #f9f9f9;
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1);
+            min-width: 200px;
+            border: 1px solid #eee;
+        }
+
+        .player-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 1em;
+        }
+
+        progress.player-health-bar {
+            width: 100%;
+            height: 18px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background: #eee;
             overflow: hidden;
         }
 
-        #health::-webkit-progress-bar {
-            background-color: #ddd;
-            border-radius: 10px;
+        #playerSelector {
+            display: flex;
+            gap: 10px;
         }
 
-        #health::-webkit-progress-value {
-            background-color: #4caf50;
+        .player-btn {
+            padding: 10px 18px;
+            font-size: 1.1em;
+            font-weight: bold;
+            border: 3px solid transparent;
             border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
-        #health::-moz-progress-bar {
-            background-color: #4caf50;
-            border-radius: 10px;
+        .player-btn.active {
+            border-color: #000;
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        #selectP1 {
+            background: #007bff;
+            color: white;
+        }
+
+        #selectP2 {
+            background: #dc3545;
+            color: white;
+        }
+
+        #timer {
+            font-weight: bold;
+            color: #3498db;
+            font-size: 1.2em;
+            white-space: nowrap;
+        }
+
+        .leaflet-div-icon {
+            background: none;
+            border: none;
+        }
+
+        #scoreboardOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            font-size: 1.5em;
+        }
+
+        #restartButton {
+            margin-top: 30px;
+            padding: 10px 20px;
+            font-size: 1em;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -145,46 +265,76 @@
 <body>
     <div id="map"></div>
 
-    <div id="configPanel">
-        <div class="config-item">
-            <label for="radiusRange">Initial Radius: <span id="radiusValue">6000</span> m</label>
-            <input type="range" id="radiusRange" min="1000" max="8000" step="500" value="6000" />
-        </div>
-
-        <div class="config-item">
-            <input type="text" id="searchBox" placeholder="Search for a location..." />
-            <button id="searchButton">🔍</button>
-        </div>
-    </div>
-
     <div id="loadingOverlay">
         <div class="spinner"></div>
-        <p>Preparing your game...</p>
+        <p>Loading objectives once...</p>
+    </div>
+
+    <div id="scoreboardOverlay">
+        <h2>Game Over</h2>
+        <div id="scoreboardContent" style="margin-top: 20px"></div>
+        <button id="restartButton">
+            Restart Game
+        </button>
+    </div>
+
+    <div id="configPanel">
+        <h2 style="margin-top: 0; font-size: 1.6em; color: #333">Game Setup</h2>
+        <div class="config-item">
+            <label for="radiusRange">Initial Safe Zone Radius:
+                <strong id="radiusValue">6000</strong> m</label>
+            <input type="range" id="radiusRange" min="1000" max="8000" step="500" value="6000" />
+        </div>
+        <div class="config-item">
+            <label for="searchBox">Center Location:</label>
+            <div class="search-area">
+                <input type="text" id="searchBox" placeholder="City or address..." value="Karlsruhe" />
+                <button id="searchButton" class="btn" type="button" style="background-color: #5cb85c; color: white">
+                    Search
+                </button>
+            </div>
+        </div>
+        <div class="config-item">
+            <strong>Objective types:</strong>
+            <div id="checkboxes" style="display: flex; flex-wrap: wrap; gap: 10px; padding-top: 5px">
+                <label><input type="checkbox" value="pub" checked /> Pub</label>
+                <label><input type="checkbox" value="bar" checked /> Bar</label>
+                <label><input type="checkbox" value="restaurant" checked />
+                    Restaurant</label>
+                <label><input type="checkbox" value="cafe" checked /> Café</label>
+                <label><input type="checkbox" value="post_office" /> Post Office</label>
+            </div>
+        </div>
+        <div class="config-item" style="border-bottom: none; margin-bottom: 0">
+            <button id="startGameButton" class="btn" type="button">
+                Game Start!
+            </button>
+        </div>
     </div>
 
     <div id="bottom-bar">
-        <div>
-            <strong>Objective types:</strong>
-            <div id="checkboxes">
-                <label><input type="checkbox" value="pub"> Pub</label>
-                <label><input type="checkbox" value="bar"> Bar</label>
-                <label><input type="checkbox" value="restaurant"> Restaurant</label>
-                <label><input type="checkbox" value="cafe"> Café</label>
-                <label><input type="checkbox" value="post_office"> Post Office</label>
+        <div id="player-huds"></div>
+        <div style="display: flex; align-items: center; gap: 30px">
+            <span id="timer">Next shrink in: --:--</span>
+            <div id="playerSelector">
+                <button id="selectP1" class="player-btn active" type="button">
+                    P1 Control
+                </button>
+                <button id="selectP2" class="player-btn" type="button">
+                    P2 Control
+                </button>
             </div>
-        </div>
-        <div id="hud">
-            <label for="health">❤️ Health:</label>
-            <progress id="health" value="100" max="100"></progress>
-        </div>
-        <div gap="50px">
-            <span id="timer">Timer: 00:00:00</span>
-            <input id="startGameButton" type="button" value="Game start!" style="width: 120px; height: 40px;" />
+            <button id="endGameButton" class="btn" type="button" style="display: none">
+                End Game
+            </button>
         </div>
     </div>
 
-    <script type="module" src="app.js"></script>
-    <script type="module" src="helper.js"></script>
+    <script type="module">
+        import {BattleRoyaleGame} from "./js/battleRoyalGame.js"
+
+        const game = new BattleRoyaleGame();
+    </script>
 </body>
 
 </html>
