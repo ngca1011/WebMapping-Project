@@ -2,34 +2,29 @@
   "players": [
     {
       "id": 1,
-      "lat": 49.0558138392415,
-      "lon": 8.399305734208978,
+      "lat": 48.777544839953045,
+      "lon": 9.195637749878037,
       "hp": 100,
       "score": 0,
       "visitedObjectives": []
     },
     {
       "id": 2,
-      "lat": 49.03657240259625,
-      "lon": 8.421373112609782,
+      "lat": 48.7686356415169,
+      "lon": 9.211542883367333,
       "hp": 100,
       "score": 0,
       "visitedObjectives": []
     }
   ],
   "gameState": {
-    "status": "ACTIVE",
+    "status": "SETUP",
     "safeZoneCenter": [
-      49.0068705,
-      8.4034195
+      48.7784485,
+      9.1800132
     ],
     "currentRadius": 6000,
-    "objectiveTypes": [
-      "pub",
-      "bar",
-      "restaurant",
-      "cafe"
-    ],
-    "lastShrinkTimestamp": 1765636731640
+    "objectiveTypes": [],
+    "lastShrinkTimestamp": 1765720011705
   }
 }

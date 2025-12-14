@@ -1,6 +1,7 @@
 /* eslint-disable no-undef */
 
-import {Player} from "./player.js"
+import { Player } from "./player.js";
+import { createAmenityPopup, setupIcons, sleep } from "./helper.js";
 export class BattleRoyaleGame {
   constructor() {
     this.city_coord = [49.01578, 8.39137];
@@ -30,45 +31,9 @@ export class BattleRoyaleGame {
     this.SHRINK_RADIUS = 500;
     this.OBJECTIVE_GRAB_RANGE = 30;
 
-    this.setupIcons();
+    this.icons = setupIcons();
     this.setupEventListeners();
     this.loadFullStateFromServer();
-  }
-
-  setupIcons() {
-    const icon_size = 25;
-    this.icons = {
-      bar: L.icon({
-        iconUrl: "./assets/bar.png",
-        iconSize: [icon_size, icon_size],
-      }),
-      cafe: L.icon({
-        iconUrl: "./assets/cafe.png",
-        iconSize: [icon_size, icon_size],
-      }),
-      post_office: L.icon({
-        iconUrl: "./assets/post_office.png",
-        iconSize: [icon_size, icon_size],
-      }),
-      pub: L.icon({
-        iconUrl: "./assets/pub.png",
-        iconSize: [icon_size, icon_size],
-      }),
-      restaurant: L.icon({
-        iconUrl: "./assets/restaurant.png",
-        iconSize: [icon_size, icon_size],
-      }),
-      player1: L.divIcon({
-        html: '<div style="background:#007bff;color:white;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:1.2em; border: 3px solid #fff; box-shadow: 0 0 5px rgba(0,0,0,0.5);">P1</div>',
-        iconSize: [46, 46],
-        className: "",
-      }),
-      player2: L.divIcon({
-        html: '<div style="background:#dc3545;color:white;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:1.2em; border: 3px solid #fff; box-shadow: 0 0 5px rgba(0,0,0,0.5);">P2</div>',
-        iconSize: [46, 46],
-        className: "",
-      }),
-    };
   }
 
   startCountdown(durationMs, initialRemainingMs = durationMs) {
@@ -133,7 +98,8 @@ export class BattleRoyaleGame {
         this.filterObjectivesInZone();
         const remaining = Math.max(
           0,
-          this.SHRINK_INTERVAL_MS - (Date.now() - (this.gameState.lastShrinkTimestamp || Date.now()))
+          this.SHRINK_INTERVAL_MS -
+            (Date.now() - (this.gameState.lastShrinkTimestamp || Date.now()))
         );
         this.startCountdown(this.SHRINK_INTERVAL_MS, remaining);
         this.startHPMonitor();
@@ -148,7 +114,15 @@ export class BattleRoyaleGame {
   }
 
   addPlayer(p) {
-    const player = new Player(this, p.id, p.lat, p.lon, p.hp ?? 100, p.score ?? 0, p.visitedObjectives ?? []);
+    const player = new Player(
+      this,
+      p.id,
+      p.lat,
+      p.lon,
+      p.hp ?? 100,
+      p.score ?? 0,
+      p.visitedObjectives ?? []
+    );
     this.players[p.id] = player;
   }
 
@@ -156,7 +130,12 @@ export class BattleRoyaleGame {
     for (let id = 1; id <= 2; id++) {
       const offsetLat = (Math.random() - 0.5) * 0.005;
       const offsetLon = (Math.random() - 0.5) * 0.005;
-      const player = new Player(this, id, this.city_coord[0] + offsetLat, this.city_coord[1] + offsetLon);
+      const player = new Player(
+        this,
+        id,
+        this.city_coord[0] + offsetLat,
+        this.city_coord[1] + offsetLon
+      );
       this.players[id] = player;
       await player.save();
     }
@@ -184,77 +163,97 @@ export class BattleRoyaleGame {
         const hp = Math.max(0, p.hp ?? 0);
         const hud = document.createElement("div");
         hud.className = "player-hud";
-        hud.style.border = isControlled ? `3px solid ${color}` : "1px solid #eee";
+        hud.style.border = isControlled
+          ? `3px solid ${color}`
+          : "1px solid #eee";
         hud.innerHTML = `
-          <div class="player-info"><span style="font-weight:bold;color:${color}">Player ${p.id}</span><span>Score: ${p.score || 0}</span></div>
+          <div class="player-info"><span style="font-weight:bold;color:${color}">Player ${
+          p.id
+        }</span><span>Score: ${p.score || 0}</span></div>
           <progress class="player-health-bar" value="${hp}" max="100"></progress>
-          <div style="font-size:0.9em;color:${hp > 50 ? "#4caf50" : hp > 20 ? "#ffc107" : "#f44336"};font-weight:bold">HP: ${hp}/100</div>
+          <div style="font-size:0.9em;color:${
+            hp > 50 ? "#4caf50" : hp > 20 ? "#ffc107" : "#f44336"
+          };font-weight:bold">HP: ${hp}/100</div>
         `;
         hudsEl.appendChild(hud);
       });
   }
 
+  buildObjectiveLayer() {
+  if (!this.objectiveClusterLayer) {
+    this.objectiveClusterLayer = new L.markerClusterGroup({
+      disableClusteringAtZoom: 18,
+      spiderfyOnMaxZoom: false,
+    });
+    this.map.addLayer(this.objectiveClusterLayer);
+  }
+
+  this.objectiveClusterLayer.clearLayers();
+
+  const players = Object.values(this.players);
+
+  L.geoJSON(this.allObjectivesGeoJSON, {
+    pointToLayer: (f, latlng) => {
+      const type = f.properties.amenity;
+      const icon = this.icons[type];
+      const marker = L.marker(latlng, { icon });
+
+      const key = `${latlng.lat.toFixed(6)},${latlng.lng.toFixed(
+        6
+      )},${type}`;
+
+      if (players.some(p => p.visitedObjectives?.has(key))) {
+        marker.setOpacity(0.5);
+      }
+
+      return marker;
+    },
+    onEachFeature: (f, l) => l.bindPopup(createAmenityPopup(f)),
+  }).eachLayer(l => this.objectiveClusterLayer.addLayer(l));
+}
+
   //Load ALL objectives once at game start
-  async loadAllObjectivesOnce() {
+  async loadAllObjectivesOnce(maxRetries = 10, retryDelay = 2000) {
     if (this.allObjectivesGeoJSON) return;
 
     const { objectiveTypes, safeZoneCenter } = this.gameState;
     if (!objectiveTypes?.length) return;
 
     const [lat, lon] = safeZoneCenter;
-    const BIG_RADIUS = 9000;
 
     document.getElementById("loadingOverlay").style.display = "flex";
     document.getElementById("loadingOverlay").querySelector("p").textContent =
       "Loading all objectives...";
 
-    try {
-      const url = `http://localhost:3000/geojson?types=${objectiveTypes.join(
-        ","
-      )}&lat=${lat}&lon=${lon}&radius=${BIG_RADIUS}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Failed");
-      this.allObjectivesGeoJSON = await res.json();
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const url = `http://localhost:3000/geojson?types=${objectiveTypes.join(
+          ","
+        )}&lat=${lat}&lon=${lon}&radius=${this.gameState.currentRadius}`;
 
-      if (!this.objectiveClusterLayer) {
-        this.objectiveClusterLayer = new L.markerClusterGroup({
-          disableClusteringAtZoom: 18,
-          spiderfyOnMaxZoom: false,
-        });
-        this.map.addLayer(this.objectiveClusterLayer);
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        this.allObjectivesGeoJSON = await res.json();
+        this.buildObjectiveLayer();
+
+        console.log(
+          `Loaded ${this.allObjectivesGeoJSON.features.length} objectives!`
+        );
+        break;
+      } catch (e) {
+        console.warn(`Load attempt ${attempt} failed`, e);
+
+        if (attempt === maxRetries) {
+          alert("Failed to load objectives after multiple attempts.");
+          break;
+        }
+
+        await sleep(retryDelay);
       }
-      this.objectiveClusterLayer.clearLayers();
-
-      const players = Object.values(this.players);
-      L.geoJSON(this.allObjectivesGeoJSON, {
-        pointToLayer: (f, latlng) => {
-          const type = f.properties.amenity;
-          const icon = this.icons[type];
-          const marker = L.marker(latlng, { icon });
-          const key = `${latlng.lat.toFixed(6)},${latlng.lng.toFixed(
-            6
-          )},${type}`;
-          if (players.some((p) => p.visitedObjectives?.has(key)))
-            marker.setOpacity(0.5);
-          return marker;
-        },
-        onEachFeature: (f, l) => {
-          const name = f.properties.name || f.properties.brand || "Unnamed";
-          l.bindPopup(
-            `<h3>${name}</h3><p>${f.properties.amenity || "Place"}</p>`
-          );
-        },
-      }).eachLayer((l) => this.objectiveClusterLayer.addLayer(l));
-
-      console.log(
-        `Loaded ${this.allObjectivesGeoJSON.features.length} objectives!`
-      );
-    } catch (e) {
-      console.error("Failed to load objectives", e);
-      alert("Could not load objectives. Check internet/server.");
-    } finally {
-      document.getElementById("loadingOverlay").style.display = "none";
     }
+
+    document.getElementById("loadingOverlay").style.display = "none";
   }
 
   filterObjectivesInZone() {
@@ -284,23 +283,6 @@ export class BattleRoyaleGame {
 
     this.objectiveClusterLayer.refreshClusters();
   }
-
-  async savePlayerToServer(id) {
-    const p = this.players[id];
-    if (!p) return;
-    fetch(`http://localhost:3000/api/players/update/${id}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        lat: p.lat,
-        lon: p.lon,
-        hp: p.hp,
-        score: p.score,
-        visitedObjectives: Array.from(p.visitedObjectives),
-      }),
-    }).catch(() => {});
-  }
-
   updateCircle() {
     const center = this.gameState.safeZoneCenter;
     const radius = this.gameState.currentRadius;
@@ -342,7 +324,7 @@ export class BattleRoyaleGame {
       p.score = 0;
       p.visitedObjectives = new Set();
       p.marker.setOpacity(1);
-      await this.savePlayerToServer(id);
+      await p.save();
     }
 
     this.gameState = {
@@ -440,8 +422,13 @@ export class BattleRoyaleGame {
     clearInterval(this.hpInterval);
     if (this.shrinkTimeout) clearTimeout(this.shrinkTimeout);
     clearInterval(window.countdownInterval);
-    this.gameState.status = "SETUP";
-    this.gameState.currentRadius = 6000;
+    this.gameState = {
+      ...this.gameState,
+      status: "SETUP",
+      currentRadius: 6000,
+      objectiveTypes: [],
+      lastShrinkTimestamp: Date.now(),
+    };
     this.allObjectivesGeoJSON = null;
 
     if (this.objectiveClusterLayer) {
@@ -459,11 +446,18 @@ export class BattleRoyaleGame {
       p.score = 0;
       p.visitedObjectives = new Set();
       p.marker.setOpacity(1);
-      await this.savePlayerToServer(p.id);
+      await p.save();
     }
     this.renderHUD();
     this.updateCircle();
     this.updateDraggable();
+
+    await fetch("http://localhost:3000/api/game/update", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...this.gameState }),
+    });
+
     alert("Game reset!");
   }
 
@@ -522,7 +516,7 @@ export class BattleRoyaleGame {
         this.players[id].marker.setLatLng(pos);
         this.players[id].lat = pos[0];
         this.players[id].lon = pos[1];
-        await this.savePlayerToServer(id);
+        await this.players[id].save();
       }
       this.updateCircle();
     } catch (e) {
