@@ -2,16 +2,16 @@
   "players": [
     {
       "id": 1,
-      "lat": 49.01393901619425,
-      "lon": 8.400892992790189,
+      "lat": 49.0558138392415,
+      "lon": 8.399305734208978,
       "hp": 100,
       "score": 0,
       "visitedObjectives": []
     },
     {
       "id": 2,
-      "lat": 49.00696739362923,
-      "lon": 8.381413210106922,
+      "lat": 49.03657240259625,
+      "lon": 8.421373112609782,
       "hp": 100,
       "score": 0,
       "visitedObjectives": []
@@ -23,13 +23,13 @@
       49.0068705,
       8.4034195
     ],
-    "currentRadius": 1000,
+    "currentRadius": 6000,
     "objectiveTypes": [
       "pub",
       "bar",
       "restaurant",
       "cafe"
     ],
-    "lastShrinkTimestamp": 1765635109205
+    "lastShrinkTimestamp": 1765636731640
   }
 }

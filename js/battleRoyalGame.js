@@ -1,4 +1,6 @@
 /* eslint-disable no-undef */
+
+import {Player} from "./player.js"
 export class BattleRoyaleGame {
   constructor() {
     this.city_coord = [49.01578, 8.39137];
@@ -103,7 +105,7 @@ export class BattleRoyaleGame {
 
       if (data.players?.length > 0) {
         data.players.forEach((p) => {
-          if (!this.players[p.id]) this.addPlayerMarker(p);
+          if (!this.players[p.id]) this.addPlayer(p);
           else {
             const pl = this.players[p.id];
             pl.lat = p.lat;
@@ -131,8 +133,7 @@ export class BattleRoyaleGame {
         this.filterObjectivesInZone();
         const remaining = Math.max(
           0,
-          this.SHRINK_INTERVAL_MS -
-            (Date.now() - (this.gameState.lastShrinkTimestamp || Date.now()))
+          this.SHRINK_INTERVAL_MS - (Date.now() - (this.gameState.lastShrinkTimestamp || Date.now()))
         );
         this.startCountdown(this.SHRINK_INTERVAL_MS, remaining);
         this.startHPMonitor();
@@ -144,6 +145,53 @@ export class BattleRoyaleGame {
       console.warn("Server failed, starting fresh", e);
       await this.createAndSavePlayers();
     }
+  }
+
+  addPlayer(p) {
+    const player = new Player(this, p.id, p.lat, p.lon, p.hp ?? 100, p.score ?? 0, p.visitedObjectives ?? []);
+    this.players[p.id] = player;
+  }
+
+  async createAndSavePlayers() {
+    for (let id = 1; id <= 2; id++) {
+      const offsetLat = (Math.random() - 0.5) * 0.005;
+      const offsetLon = (Math.random() - 0.5) * 0.005;
+      const player = new Player(this, id, this.city_coord[0] + offsetLat, this.city_coord[1] + offsetLon);
+      this.players[id] = player;
+      await player.save();
+    }
+    this.renderHUD();
+    this.applyActivePlayerUI();
+    this.updateDraggable();
+  }
+
+  updateDraggable() {
+    Object.values(this.players).forEach((p) => {
+      const allowed = p.id === this.controlledPlayerId && p.hp > 0;
+      p.setDraggable(allowed);
+    });
+    this.applyActivePlayerUI();
+  }
+
+  renderHUD() {
+    const hudsEl = document.getElementById("player-huds");
+    hudsEl.innerHTML = "";
+    Object.values(this.players)
+      .sort((a, b) => a.id - b.id)
+      .forEach((p) => {
+        const isControlled = p.id === this.controlledPlayerId;
+        const color = p.id === 1 ? "#007bff" : "#dc3545";
+        const hp = Math.max(0, p.hp ?? 0);
+        const hud = document.createElement("div");
+        hud.className = "player-hud";
+        hud.style.border = isControlled ? `3px solid ${color}` : "1px solid #eee";
+        hud.innerHTML = `
+          <div class="player-info"><span style="font-weight:bold;color:${color}">Player ${p.id}</span><span>Score: ${p.score || 0}</span></div>
+          <progress class="player-health-bar" value="${hp}" max="100"></progress>
+          <div style="font-size:0.9em;color:${hp > 50 ? "#4caf50" : hp > 20 ? "#ffc107" : "#f44336"};font-weight:bold">HP: ${hp}/100</div>
+        `;
+        hudsEl.appendChild(hud);
+      });
   }
 
   //Load ALL objectives once at game start
@@ -251,55 +299,6 @@ export class BattleRoyaleGame {
         visitedObjectives: Array.from(p.visitedObjectives),
       }),
     }).catch(() => {});
-  }
-
-  async handlePlayerMove(pos, id) {
-    const player = this.players[id];
-    let scored = false;
-    if (this.objectiveClusterLayer) {
-      this.objectiveClusterLayer.eachLayer((m) => {
-        if (this.checkObjective(m, player)) {
-          scored = true;
-        }
-      });
-    }
-
-    player.lat = pos.lat;
-    player.lon = pos.lng;
-    player.marker.setLatLng(pos);
-
-    if (scored) this.renderHUD();
-
-    await this.savePlayerToServer(id);
-  }
-
-  checkObjective(layer, player) {
-    const f = layer.feature;
-    if (!f?.geometry?.coordinates) return false;
-
-    const [lng, lat] = f.geometry.coordinates;
-    const type = f.properties.amenity;
-    const key = `${lat.toFixed(6)},${lng.toFixed(6)},${type}`;
-
-    // already taken by ANYONE
-    if (player.visitedObjectives.has(key)) return false;
-
-    const dist = this.map.distance(player.marker.getLatLng(), [lat, lng]);
-    if (dist > this.OBJECTIVE_GRAB_RANGE) return false;
-
-    player.visitedObjectives.add(key);
-    player.score += 1;
-
-    L.popup({ closeButton: false, autoClose: true })
-      .setLatLng([lat, lng])
-      .setContent("✅ Earned Point!")
-      .openOn(this.map);
-
-    if (this.objectiveClusterLayer?.hasLayer(layer)) {
-      this.objectiveClusterLayer.removeLayer(layer);
-    }
-
-    return true;
   }
 
   updateCircle() {
@@ -423,83 +422,9 @@ export class BattleRoyaleGame {
       }
       if (changed) this.renderHUD();
 
-      if (Object.values(this.players).filter((p) => p.hp > 0).length <= 1)
+      if (Object.values(this.players).filter((p) => p.hp > 0).length == 0)
         this.handleGameOver();
     }, 1000);
-  }
-
-  async createAndSavePlayers() {
-    for (let id = 1; id <= 2; id++) {
-      const offsetLat = (Math.random() - 0.5) * 0.005;
-      const offsetLon = (Math.random() - 0.5) * 0.005;
-      const p = {
-        id,
-        lat: this.city_coord[0] + offsetLat,
-        lon: this.city_coord[1] + offsetLon,
-        hp: 100,
-        score: 0,
-        visitedObjectives: [],
-      };
-      this.addPlayerMarker(p);
-      await this.savePlayerToServer(id);
-    }
-    this.renderHUD();
-    this.applyActivePlayerUI();
-    this.updateDraggable();
-  }
-
-  addPlayerMarker(p) {
-    const icon = this.icons[`player${p.id}`] || this.icons.player1;
-    const marker = L.marker([p.lat, p.lon], {
-      draggable: true,
-      icon,
-      autoPan: true,
-      autoPanPadding: [80, 80],
-      autoPanSpeed: 20,
-    }).addTo(this.map);
-
-    marker.playerId = p.id;
-
-    marker.on("dragend", (e) => {
-      const newPos = e.target.getLatLng();
-      this.handlePlayerMove(newPos, p.id);
-    });
-    this.players[p.id] = {
-      id: p.id,
-      marker,
-      lat: p.lat,
-      lon: p.lon,
-      hp: p.hp ?? 100,
-      score: p.score ?? 0,
-      visitedObjectives: new Set(p.visitedObjectives || []),
-    };
-  }
-
-  renderHUD() {
-    const hudsEl = document.getElementById("player-huds");
-    hudsEl.innerHTML = "";
-    Object.values(this.players)
-      .sort((a, b) => a.id - b.id)
-      .forEach((p) => {
-        const isControlled = p.id === this.controlledPlayerId;
-        const color = p.id === 1 ? "#007bff" : "#dc3545";
-        const hp = Math.max(0, p.hp ?? 0);
-        const hud = document.createElement("div");
-        hud.className = "player-hud";
-        hud.style.border = isControlled
-          ? `3px solid ${color}`
-          : "1px solid #eee";
-        hud.innerHTML = `
-                        <div class="player-info"><span style="font-weight:bold;color:${color}">Player ${
-          p.id
-        }</span><span>Score: ${p.score || 0}</span></div>
-                        <progress class="player-health-bar" value="${hp}" max="100"></progress>
-                        <div style="font-size:0.9em;color:${
-                          hp > 50 ? "#4caf50" : hp > 20 ? "#ffc107" : "#f44336"
-                        };font-weight:bold">HP: ${hp}/100</div>
-                    `;
-        hudsEl.appendChild(hud);
-      });
   }
 
   applyActivePlayerUI() {
@@ -509,15 +434,6 @@ export class BattleRoyaleGame {
     document
       .getElementById("selectP2")
       .classList.toggle("active", this.controlledPlayerId === 2);
-  }
-
-  updateDraggable() {
-    Object.values(this.players).forEach((p) => {
-      const allowed = p.id === this.controlledPlayerId && p.hp > 0;
-      if (allowed) p.marker.dragging.enable();
-      else p.marker.dragging.disable();
-    });
-    this.applyActivePlayerUI();
   }
 
   async handleGameReset() {
