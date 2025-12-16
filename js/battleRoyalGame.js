@@ -1,7 +1,12 @@
 /* eslint-disable no-undef */
 
 import { Player } from "./player.js";
-import { createAmenityPopup, setupIcons, sleep } from "./helper.js";
+import {
+  createAmenityPopup,
+  setupIcons,
+  sleep,
+  getUrlParams,
+} from "./helper.js";
 export class BattleRoyaleGame {
   constructor() {
     this.city_coord = [49.01578, 8.39137];
@@ -10,8 +15,12 @@ export class BattleRoyaleGame {
       attribution: "© OpenStreetMap contributors",
     }).addTo(this.map);
 
+    const { gameId, playerId } = getUrlParams();
+
+    this.gameId = gameId;
+    this.controlledPlayerId = playerId || 1;
+
     this.players = {};
-    this.controlledPlayerId = 1;
     this.gameState = {
       status: "SETUP",
       safeZoneCenter: this.city_coord,
@@ -34,9 +43,73 @@ export class BattleRoyaleGame {
     this.icons = setupIcons();
     this.setupEventListeners();
     this.loadFullStateFromServer();
+
+    this.isLoadingObjectives = false;
   }
 
-  startCountdown(durationMs, initialRemainingMs = durationMs) {
+  async store() {
+    // Joined as player 2
+    if (this.gameId) {
+      //await this.createAndSavePlayers();
+      await this.loadFullStateFromServer();
+      return;
+    }
+    // 1. Create game on server
+    const res = await fetch("http://localhost:3000/api/game/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        gameState: {
+          safeZoneCenter: this.city_coord,
+          currentRadius: 6000,
+          status: "SETUP",
+        },
+      }),
+    });
+
+    if (!res.ok) {
+      alert("Failed to create game");
+      return;
+    }
+
+    const { gameId } = await res.json();
+
+    // 2. Save locally
+    this.gameId = gameId;
+    this.controlledPlayerId = 1;
+
+    // 3. Update URL (host = player 1)
+    const newUrl = `${window.location.pathname}?gameId=${gameId}&playerId=1`;
+    window.history.replaceState({}, "", newUrl);
+
+    // 4. Create players in DB
+    await this.createAndSavePlayers();
+
+    // 5. Show invite link
+    const inviteLink = `${window.location.origin}${window.location.pathname}?gameId=${gameId}&playerId=2`;
+
+    const box = document.getElementById("inviteBox");
+    const link = document.getElementById("inviteLink");
+
+    link.href = inviteLink;
+    link.textContent = inviteLink;
+
+    box.style.display = "block";
+
+    // 6. Load game normally
+    await this.loadFullStateFromServer();
+  }
+
+  async updateShrinkTimerFromServer() {
+    if (!this.gameState.lastShrinkTimestamp) return;
+
+    const elapsed = Date.now() - this.gameState.lastShrinkTimestamp;
+    const remaining = Math.max(0, this.SHRINK_INTERVAL_MS - elapsed);
+
+    await this.startCountdown(this.SHRINK_INTERVAL_MS, remaining);
+  }
+
+  async startCountdown(durationMs, initialRemainingMs = durationMs) {
     const targetTime = Date.now() + initialRemainingMs;
     const timerEl = document.getElementById("timer");
     if (window.countdownInterval) clearInterval(window.countdownInterval);
@@ -59,8 +132,9 @@ export class BattleRoyaleGame {
   }
 
   async loadFullStateFromServer() {
+    if (!this.gameId) return;
     try {
-      const res = await fetch("http://localhost:3000/api/state");
+      const res = await fetch(`http://localhost:3000/api/game/${this.gameId}`);
       if (!res.ok) throw new Error("Server not reachable");
       const data = await res.json();
 
@@ -68,49 +142,143 @@ export class BattleRoyaleGame {
       this.city_coord = this.gameState.safeZoneCenter;
       this.map.flyTo(this.city_coord, 12);
 
-      if (data.players?.length > 0) {
-        data.players.forEach((p) => {
-          if (!this.players[p.id]) this.addPlayer(p);
-          else {
-            const pl = this.players[p.id];
-            pl.lat = p.lat;
-            pl.lon = p.lon;
-            pl.hp = p.hp;
-            pl.score = p.score;
-            pl.visitedObjectives = new Set(p.visitedObjectives || []);
-            pl.marker.setLatLng([p.lat, p.lon]).setOpacity(p.hp > 0 ? 1 : 0.4);
-          }
-        });
-      } else {
-        await this.createAndSavePlayers();
-      }
+      data.players.forEach((p) => {
+        if (!this.players[p.id]) this.addPlayer(p);
+        else {
+          const pl = this.players[p.id];
+          pl.lat = p.lat;
+          pl.lon = p.lon;
+          pl.hp = p.hp;
+          pl.score = p.score;
+          pl.visitedObjectives = new Set(p.visitedObjectives || []);
+          pl.marker.setLatLng([p.lat, p.lon]).setOpacity(p.hp > 0 ? 1 : 0.4);
+        }
+      });
 
       this.renderHUD();
-      this.applyActivePlayerUI();
       this.updateDraggable();
-      this.updateCircle();
+      await this.updateCircle();
 
       if (this.gameState.status === "ACTIVE") {
+        if (!data.gameState) return;
         document.getElementById("configPanel").classList.add("game-active");
         document.getElementById("endGameButton").style.display = "inline-block";
         document.getElementById("configPanel").style.display = "none";
         await this.loadAllObjectivesOnce();
-        this.filterObjectivesInZone();
-        const remaining = Math.max(
-          0,
-          this.SHRINK_INTERVAL_MS -
-            (Date.now() - (this.gameState.lastShrinkTimestamp || Date.now()))
-        );
-        this.startCountdown(this.SHRINK_INTERVAL_MS, remaining);
-        this.startHPMonitor();
-        this.startShrinkMonitor(remaining);
+        await this.updateShrinkTimerFromServer();
+        if (this.controlledPlayerId === 1) {
+          this.startHPMonitor();
+          await this.startShrinkMonitor(remaining);
+        }
       } else {
         document.getElementById("timer").textContent = "Next shrink in: --:--";
       }
+
+      // START POLLING FOR UPDATES
+      this.startPolling();
     } catch (e) {
       console.warn("Server failed, starting fresh", e);
-      await this.createAndSavePlayers();
     }
+  }
+
+  startPolling() {
+    if (this.pollingInterval) clearInterval(this.pollingInterval);
+
+    this.pollingInterval = setInterval(async () => {
+      if (!this.gameId) return;
+
+      try {
+        const res = await fetch(
+          `http://localhost:3000/api/game/${this.gameId}`
+        );
+        if (!res.ok) return;
+
+        const data = await res.json();
+
+        const newCenter = data.gameState.safeZoneCenter;
+        if (
+          this.city_coord[0] !== newCenter[0] ||
+          this.city_coord[1] !== newCenter[1]
+        ) {
+          this.gameState.safeZoneCenter = newCenter
+          this.city_coord = newCenter;
+          this.map.flyTo(this.city_coord, 12);
+          await this.updateCircle();
+        }
+
+        // Change of state from setup to active
+        if (
+          this.gameState.status == "SETUP" &&
+          data.gameState.status == "ACTIVE"
+        ) {
+          document.getElementById("configPanel").style.display = "none";
+        }
+        if (
+          data.gameState.status == "SETUP" &&
+          this.gameState.status == "ACTIVE"
+        ) {
+          await this.handleGameOver();
+        }
+
+        const prevShrinkTs = this.gameState.lastShrinkTimestamp;
+        this.gameState = { ...this.gameState, ...(data.gameState || {}) };
+
+        // Update players from server
+        data.players.forEach((serverPlayer) => {
+          const localPlayer = this.players[serverPlayer.id];
+
+          if (!localPlayer) {
+            this.addPlayer(serverPlayer);
+            return;
+          }
+
+          // Only update if it's not the controlled player or the game is still in SETUP
+          if (localPlayer.id !== this.controlledPlayerId || this.gameState.status === "SETUP") {
+            localPlayer.lat = serverPlayer.lat;
+            localPlayer.lon = serverPlayer.lon;
+            localPlayer.marker.setLatLng([serverPlayer.lat, serverPlayer.lon]);
+          }
+
+          // --- STATS (always sync) ---
+          localPlayer.hp = serverPlayer.hp;
+          localPlayer.score = serverPlayer.score;
+          localPlayer.visitedObjectives = new Set(
+            serverPlayer.visitedObjectives || []
+          );
+          localPlayer.marker.setOpacity(serverPlayer.hp > 0 ? 1 : 0.4);
+        });
+
+        // Update circle if radius changed
+        if (
+          this.currentCircle &&
+          this.gameState.currentRadius !== this.currentCircle.getRadius()
+        ) {
+          await this.updateCircle();
+        }
+
+        // Refresh objectives display
+        if (this.gameState.status === "ACTIVE") {
+          if (!this.allObjectivesGeoJSON && !this.objectiveClusterLayer) {
+            console.log("HELLOOOOOO");
+            await this.loadAllObjectivesOnce();
+          } else if (!this.objectiveClusterLayer)
+            await this.buildObjectiveLayer();
+
+          if (
+            data.gameState?.lastShrinkTimestamp &&
+            data.gameState.lastShrinkTimestamp !== prevShrinkTs
+          ) {
+            await this.updateShrinkTimerFromServer();
+          }
+        }
+
+        // Update UI
+        this.renderHUD();
+        this.updateDraggable();
+      } catch (e) {
+        console.warn("Polling error:", e);
+      }
+    }, 500); // Poll every 500ms
   }
 
   addPlayer(p) {
@@ -137,10 +305,9 @@ export class BattleRoyaleGame {
         this.city_coord[1] + offsetLon
       );
       this.players[id] = player;
-      await player.save();
+      await player.create();
     }
     this.renderHUD();
-    this.applyActivePlayerUI();
     this.updateDraggable();
   }
 
@@ -149,7 +316,6 @@ export class BattleRoyaleGame {
       const allowed = p.id === this.controlledPlayerId && p.hp > 0;
       p.setDraggable(allowed);
     });
-    this.applyActivePlayerUI();
   }
 
   renderHUD() {
@@ -179,42 +345,35 @@ export class BattleRoyaleGame {
       });
   }
 
-  buildObjectiveLayer() {
-  if (!this.objectiveClusterLayer) {
-    this.objectiveClusterLayer = new L.markerClusterGroup({
-      disableClusteringAtZoom: 18,
-      spiderfyOnMaxZoom: false,
-    });
-    this.map.addLayer(this.objectiveClusterLayer);
+  async buildObjectiveLayer() {
+    if (!this.objectiveClusterLayer) {
+      this.objectiveClusterLayer = new L.markerClusterGroup({
+        disableClusteringAtZoom: 18,
+        spiderfyOnMaxZoom: false,
+      });
+      this.map.addLayer(this.objectiveClusterLayer);
+    }
+
+    this.objectiveClusterLayer.clearLayers();
+
+    L.geoJSON(this.allObjectivesGeoJSON, {
+      pointToLayer: (f, latlng) => {
+        const type = f.properties.amenity;
+        const icon = this.icons[type];
+        const marker = L.marker(latlng, { icon });
+        return marker;
+      },
+      onEachFeature: (f, l) => l.bindPopup(createAmenityPopup(f)),
+    }).eachLayer((l) => this.objectiveClusterLayer.addLayer(l));
+
+    await this.filterObjectivesInZone();
   }
 
-  this.objectiveClusterLayer.clearLayers();
-
-  const players = Object.values(this.players);
-
-  L.geoJSON(this.allObjectivesGeoJSON, {
-    pointToLayer: (f, latlng) => {
-      const type = f.properties.amenity;
-      const icon = this.icons[type];
-      const marker = L.marker(latlng, { icon });
-
-      const key = `${latlng.lat.toFixed(6)},${latlng.lng.toFixed(
-        6
-      )},${type}`;
-
-      if (players.some(p => p.visitedObjectives?.has(key))) {
-        marker.setOpacity(0.5);
-      }
-
-      return marker;
-    },
-    onEachFeature: (f, l) => l.bindPopup(createAmenityPopup(f)),
-  }).eachLayer(l => this.objectiveClusterLayer.addLayer(l));
-}
-
   //Load ALL objectives once at game start
-  async loadAllObjectivesOnce(maxRetries = 10, retryDelay = 2000) {
-    if (this.allObjectivesGeoJSON) return;
+  async loadAllObjectivesOnce(maxRetries = 3, retryDelay = 2000) {
+    if (this.allObjectivesGeoJSON || this.isLoadingObjectives) return;
+
+    this.isLoadingObjectives = true;
 
     const { objectiveTypes, safeZoneCenter } = this.gameState;
     if (!objectiveTypes?.length) return;
@@ -235,8 +394,7 @@ export class BattleRoyaleGame {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         this.allObjectivesGeoJSON = await res.json();
-        this.buildObjectiveLayer();
-
+        await this.buildObjectiveLayer();
         console.log(
           `Loaded ${this.allObjectivesGeoJSON.features.length} objectives!`
         );
@@ -245,18 +403,19 @@ export class BattleRoyaleGame {
         console.warn(`Load attempt ${attempt} failed`, e);
 
         if (attempt === maxRetries) {
-          alert("Failed to load objectives after multiple attempts.");
           break;
         }
 
         await sleep(retryDelay);
+      } finally {
+        this.isLoadingObjectives = false;
       }
     }
 
     document.getElementById("loadingOverlay").style.display = "none";
   }
 
-  filterObjectivesInZone() {
+  async filterObjectivesInZone() {
     if (
       !this.objectiveClusterLayer ||
       !this.currentCircle ||
@@ -283,7 +442,8 @@ export class BattleRoyaleGame {
 
     this.objectiveClusterLayer.refreshClusters();
   }
-  updateCircle() {
+
+  async updateCircle() {
     const center = this.gameState.safeZoneCenter;
     const radius = this.gameState.currentRadius;
 
@@ -304,7 +464,7 @@ export class BattleRoyaleGame {
     const km = (radius / 1000).toFixed(1);
     this.currentCircle.getTooltip().setContent(`Safe Zone (${km} km)`);
 
-    this.filterObjectivesInZone();
+    await this.filterObjectivesInZone();
   }
 
   async startGame() {
@@ -317,6 +477,7 @@ export class BattleRoyaleGame {
     document.getElementById("startGameButton").disabled = true;
     document.getElementById("loadingOverlay").style.display = "flex";
     document.getElementById("configPanel").style.display = "none";
+    document.getElementById("inviteBox").style.display = "none";
 
     for (let id = 1; id <= 2; id++) {
       const p = this.players[id];
@@ -335,38 +496,47 @@ export class BattleRoyaleGame {
       lastShrinkTimestamp: Date.now(),
     };
 
-    await fetch("http://localhost:3000/api/game/start", {
-      method: "POST",
+    await fetch(`http://localhost:3000/api/game/${this.gameId}/state`, {
+      method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ gameState: this.gameState }),
+      body: JSON.stringify({
+        status: "ACTIVE",
+        safeZoneCenter: this.city_coord,
+        currentRadius: radius,
+        objectiveTypes: selected,
+        lastShrinkTimestamp: Date.now(),
+      }),
     });
 
     await this.loadAllObjectivesOnce();
-    this.updateCircle();
+    await this.updateCircle();
     document.getElementById("configPanel").classList.add("game-active");
     document.getElementById("endGameButton").style.display = "inline-block";
-    this.startCountdown(this.SHRINK_INTERVAL_MS, this.SHRINK_INTERVAL_MS);
-    this.startHPMonitor();
-    this.startShrinkMonitor(this.SHRINK_INTERVAL_MS);
+    await this.startCountdown(this.SHRINK_INTERVAL_MS, this.SHRINK_INTERVAL_MS);
+    if (this.controlledPlayerId === 1) {
+      this.startHPMonitor();
+      await this.startShrinkMonitor(this.SHRINK_INTERVAL_MS);
+    }
     this.renderHUD();
     this.updateDraggable();
 
     document.getElementById("loadingOverlay").style.display = "none";
   }
 
-  startShrinkMonitor(remainingMs = this.SHRINK_INTERVAL_MS) {
+  async startShrinkMonitor(remainingMs = this.SHRINK_INTERVAL_MS) {
+    if (!this.gameId) return;
     if (this.shrinkTimeout) clearTimeout(this.shrinkTimeout);
-    this.shrinkTimeout = setTimeout(() => {
+    this.shrinkTimeout = setTimeout(async () => {
       this.gameState.currentRadius = Math.max(
         0,
         this.gameState.currentRadius - this.SHRINK_RADIUS
       );
-      if (this.gameState.currentRadius <= 0) return this.handleGameOver();
+      if (this.gameState.currentRadius <= 0) return await this.handleGameOver();
 
       this.gameState.lastShrinkTimestamp = Date.now();
 
-      fetch("http://localhost:3000/api/game/update", {
-        method: "POST",
+      fetch(`http://localhost:3000/api/game/${this.gameId}/state`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           currentRadius: this.gameState.currentRadius,
@@ -374,54 +544,54 @@ export class BattleRoyaleGame {
         }),
       });
 
-      this.updateCircle();
-      this.startCountdown(this.SHRINK_INTERVAL_MS, this.SHRINK_INTERVAL_MS);
-      this.startShrinkMonitor(this.SHRINK_INTERVAL_MS);
+      await this.updateCircle();
+      await this.updateShrinkTimerFromServer();
+      await this.startShrinkMonitor(this.SHRINK_INTERVAL_MS);
     }, remainingMs);
   }
 
   startHPMonitor() {
+    if (this.controlledPlayerId !== 1) return;
     if (this.hpInterval) clearInterval(this.hpInterval);
-    this.hpInterval = setInterval(() => {
+    this.hpInterval = setInterval(async () => {
       if (this.gameState.status !== "ACTIVE") return;
 
       let changed = false;
       for (const p of Object.values(this.players)) {
         if (p.hp <= 0) continue;
         const dist = this.map.distance(
-          p.marker.getLatLng(),
+          [p.lat, p.lon],
           this.currentCircle.getLatLng()
         );
         if (dist > this.currentCircle.getRadius()) {
-          p.hp = Math.max(0, p.hp - 5);
+          p.hp = Math.max(0, p.hp - 10);
           p.marker.setPopupContent(`Player ${p.id} (HP: ${p.hp})`);
           if (p.hp <= 0) {
             p.marker.setOpacity(0.4);
             this.updateDraggable();
           }
           changed = true;
+          await p.save(true);
         }
       }
       if (changed) this.renderHUD();
 
       if (Object.values(this.players).filter((p) => p.hp > 0).length == 0)
-        this.handleGameOver();
+        await this.handleGameOver();
     }, 1000);
   }
 
-  applyActivePlayerUI() {
-    document
-      .getElementById("selectP1")
-      .classList.toggle("active", this.controlledPlayerId === 1);
-    document
-      .getElementById("selectP2")
-      .classList.toggle("active", this.controlledPlayerId === 2);
-  }
-
   async handleGameReset() {
+    // Stop polling
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
+    }
+
     clearInterval(this.hpInterval);
     if (this.shrinkTimeout) clearTimeout(this.shrinkTimeout);
     clearInterval(window.countdownInterval);
+
     this.gameState = {
       ...this.gameState,
       status: "SETUP",
@@ -435,6 +605,7 @@ export class BattleRoyaleGame {
       this.map.removeLayer(this.objectiveClusterLayer);
       this.objectiveClusterLayer = null;
     }
+
     document.getElementById("configPanel").style.display = "block";
     document.getElementById("configPanel").classList.remove("game-active");
     document.getElementById("endGameButton").style.display = "none";
@@ -448,21 +619,27 @@ export class BattleRoyaleGame {
       p.marker.setOpacity(1);
       await p.save();
     }
+
     this.renderHUD();
-    this.updateCircle();
+    await this.updateCircle();
     this.updateDraggable();
 
-    await fetch("http://localhost:3000/api/game/update", {
-      method: "POST",
+    await fetch(`http://localhost:3000/api/game/${this.gameId}/state`, {
+      method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...this.gameState }),
+      body: JSON.stringify({
+        status: "SETUP",
+        currentRadius: 6000,
+        objectiveTypes: [],
+        lastShrinkTimestamp: Date.now(),
+      }),
     });
 
-    alert("Game reset!");
+    // Restart polling
+    this.startPolling();
   }
 
-  handleGameOver() {
-    if (this.gameState.status !== "ACTIVE") return;
+  async handleGameOver() {
     clearInterval(this.hpInterval);
     if (this.shrinkTimeout) clearTimeout(this.shrinkTimeout);
     clearInterval(window.countdownInterval);
@@ -486,9 +663,9 @@ export class BattleRoyaleGame {
 
     document.getElementById("scoreboardOverlay").style.display = "flex";
 
-    document.getElementById("restartButton").onclick = () => {
+    document.getElementById("restartButton").onclick = async () => {
       document.getElementById("scoreboardOverlay").style.display = "none";
-      this.handleGameReset();
+      await this.handleGameReset();
     };
   }
 
@@ -518,7 +695,15 @@ export class BattleRoyaleGame {
         this.players[id].lon = pos[1];
         await this.players[id].save();
       }
-      this.updateCircle();
+      this.gameState.safeZoneCenter = this.city_coord;
+      await fetch(`http://localhost:3000/api/game/${this.gameId}/state`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          safeZoneCenter: this.city_coord,
+        }),
+      });
+      await this.updateCircle();
     } catch (e) {
       console.log(e);
       alert("Search failed");
@@ -531,19 +716,24 @@ export class BattleRoyaleGame {
   setupEventListeners() {
     document.getElementById("startGameButton").onclick = () => this.startGame();
     document.getElementById("searchButton").onclick = () => this.handleSearch();
-    document.getElementById("endGameButton").onclick = () =>
-      this.handleGameReset();
-    document.getElementById("selectP1").onclick = () => {
-      this.controlledPlayerId = 1;
-      this.updateDraggable();
-    };
-    document.getElementById("selectP2").onclick = () => {
-      this.controlledPlayerId = 2;
-      this.updateDraggable();
-    };
-    document.getElementById("radiusRange").oninput = (e) => {
-      document.getElementById("radiusValue").textContent = e.target.value;
-      if (this.currentCircle) this.currentCircle.setRadius(e.target.value);
+    document.getElementById("endGameButton").onclick = async () =>
+      await this.handleGameOver();
+    document.getElementById("radiusRange").oninput = async (e) => {
+      const newRadius = parseInt(e.target.value, 10);
+      document.getElementById("radiusValue").textContent = newRadius;
+
+      this.gameState.currentRadius = newRadius;
+      await this.updateCircle();
+
+      if (this.gameId) {
+        await fetch(`http://localhost:3000/api/game/${this.gameId}/state`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            currentRadius: newRadius,
+          }),
+        });
+      }
     };
   }
 }

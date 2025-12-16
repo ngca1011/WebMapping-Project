@@ -121,3 +121,11 @@ export function setupIcons() {
 export async function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
+
+export function getUrlParams() {
+  const params = new URLSearchParams(window.location.search);
+  return {
+    gameId: params.get("gameId"),
+    playerId: Number(params.get("playerId")),
+  };
+}

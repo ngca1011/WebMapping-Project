@@ -9,6 +9,10 @@ export class Player {
     this.score = score;
     this.visitedObjectives = new Set(visitedObjectives);
     this.marker = this.createMarker();
+    this.isDragging = false;
+
+    this.marker.on("dragstart", () => (this.isDragging = true));
+    this.marker.on("dragend", () => (this.isDragging = false));
   }
 
   createMarker() {
@@ -76,18 +80,46 @@ export class Player {
     return true;
   }
 
-  async save() {
+  async create() {
     try {
-      await fetch(`http://localhost:3000/api/players/update/${this.id}`, {
+      await fetch(`http://localhost:3000/api/players/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          gameId: this.game.gameId,
+          id: this.id,
           lat: this.lat,
           lon: this.lon,
-          hp: this.hp,
+        }),
+      });
+    } catch (e) {
+      console.warn("Failed to create player", e);
+    }
+  }
+
+  async save(hpUpdate = false) {
+    if (!this.game.gameId) {
+      console.warn("No gameId provided to save()");
+      return;
+    }
+    try {
+      let payload = {
+        gameId: this.game.gameId,
+        hp: this.hp,
+        id: this.id,
+      };
+      if (!hpUpdate)
+        payload = {
+          ...payload,
+          lat: this.lat,
+          lon: this.lon,
           score: this.score,
           visitedObjectives: Array.from(this.visitedObjectives),
-        }),
+        };
+      await fetch(`http://localhost:3000/api/players/update`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
     } catch (e) {
       console.warn("Failed to save player", e);

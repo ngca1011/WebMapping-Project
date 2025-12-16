@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 
 const app = express();
 const PORT = 3000;
@@ -22,39 +23,16 @@ const DEFAULT_GAME_STATE = {
   lastShrinkTimestamp: null,
 };
 
-function readDB() {
+async function readDB() {
   try {
-    const data = fs.readFileSync(DB_FILE, "utf8");
-    const parsed = JSON.parse(data);
-
-    return {
-      players: parsed.players || [],
-      gameState: {
-        ...DEFAULT_GAME_STATE,
-        ...(parsed.gameState || {}),
-      },
-    };
-  } catch (error) {
-    if (error.code !== "ENOENT") {
-      console.error("Error reading database file:", error.message);
-    }
-    return {
-      players: [],
-      gameState: DEFAULT_GAME_STATE,
-    };
+    return JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
+  } catch {
+    return { games: {} };
   }
 }
 
-function writeDB(data) {
-  try {
-    const dataToSave = {
-      players: data.players,
-      gameState: data.gameState,
-    };
-    fs.writeFileSync(DB_FILE, JSON.stringify(dataToSave, null, 2), "utf8");
-  } catch (error) {
-    console.error("Error writing to database file:", error.message);
-  }
+function writeDB(db) {
+  fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
 }
 
 function overpassToGeoJSON(overpassJson) {
@@ -96,123 +74,147 @@ function overpassToGeoJSON(overpassJson) {
 
 // --- API Endpoints ---
 
+
+app.post("/api/game/create", async (req, res) => {
+  const db = await readDB();
+
+  const gameId = crypto.randomUUID();
+
+  db.games[gameId] = {
+    gameState: {
+      ...DEFAULT_GAME_STATE,
+      ...(req.body.gameState || {}),
+    },
+    players: [],
+  };
+
+  writeDB(db);
+
+  res.json({ gameId });
+});
+
 // GET current full state
-app.get("/api/state", (req, res) => {
-  const db = readDB();
-  res.json(db);
+app.get("/api/game/:gameId", async (req, res) => {
+  const db = await readDB();
+  const game = db.games[req.params.gameId];
+
+  if (!game) return res.status(404).json({ error: "Game not found" });
+
+  res.json(game);
 });
 
 // Start game
-app.post("/api/game/start", (req, res) => {
-  const db = readDB();
-  db.gameState = {
-    ...db.gameState,
-    ...req.body.gameState,
+app.post("/api/game/start/:gameId", async (req, res) => {
+  const db = await readDB();
+  const game = db.games[req.params.gameId];
+
+  game.gameState = {
+    ...game.gameState,
+    ...req.body,
     status: "ACTIVE",
+    lastShrinkTimestamp: Date.now(),
   };
-  if (db.gameState.lastShrinkTimestamp === null) {
-    db.gameState.lastShrinkTimestamp = Date.now();
-  }
+
   writeDB(db);
-  res.json({ message: "Game started", gameState: db.gameState });
+  res.json(game.gameState);
 });
 
 // General game state update
-app.post("/api/game/update", (req, res) => {
-  const db = readDB();
+app.patch("/api/game/:gameId/state", async (req, res) => {
+  const db = await readDB();
+  const game = db.games[req.params.gameId];
 
-  // Incoming updates, including new radius and timestamp
-  const incomingUpdates = req.body;
+  if (!game) {
+    return res.status(404).json({ error: "Game not found" });
+  }
 
-  db.gameState = {
-    ...db.gameState,
-    ...incomingUpdates,
-  };
+  // Only allow known fields
+  const allowedFields = [
+    "status",
+    "currentRadius",
+    "safeZoneCenter",
+    "objectiveTypes",
+    "shrinkInterval",
+    "shrinkAmount",
+    "lastShrinkTimestamp",
+  ];
 
-  if (incomingUpdates.currentRadius !== undefined) {
-    if (db.gameState.status.toUpperCase().includes("SHRINK")) {
-      db.gameState.status = "ACTIVE";
-      console.log(
-        `[Game Update] Auto-transitioned game status to ACTIVE after radius update.`
-      );
+  for (const key of allowedFields) {
+    if (req.body[key] !== undefined) {
+      game.gameState[key] = req.body[key];
     }
   }
 
   writeDB(db);
-  res.json({ message: "Game state updated", gameState: db.gameState });
+  res.json(game.gameState);
 });
 
 // Reset game state and players
-app.post("/api/game/reset", (req, res) => {
-  const db = {
-    players: [],
-    gameState: DEFAULT_GAME_STATE,
-  };
-  writeDB(db);
-  res.json({
-    message: "Game successfully reset to initial state.",
-    gameState: db.gameState,
+app.post("/api/game/reset/:gameId", async (req, res) => {
+  const db = await readDB();
+  const game = db.games[req.params.gameId];
+
+  game.gameState = DEFAULT_GAME_STATE;
+  game.players.forEach(p => {
+    p.hp = 100;
+    p.score = 0;
+    p.visitedObjectives = [];
   });
+
+  writeDB(db);
+  res.json({ ok: true });
 });
 
 // Create a new player
-app.post("/api/players/create", (req, res) => {
-  const { name, lat, lon, id } = req.body;
-  let db = readDB();
+app.post("/api/players/create", async (req, res) => {
+  const { gameId, id, lat, lon } = req.body;
+  const db = await readDB();
 
-  if (!id) {
-    return res.status(400).json({ error: "Missing required player ID." });
+  const game = db.games[gameId];
+  if (!game) return res.status(404).json({ error: "Game not found" });
+
+  if (game.players.some(p => p.id === id)) {
+    return res.status(409).json({ error: "Player exists" });
   }
 
-  if (db.players.some((p) => p.id === id)) {
-    return res
-      .status(409)
-      .json({
-        error: `Player with ID ${id} already exists. Use update endpoint.`,
-      });
-  }
-
-  const newPlayer = {
-    id: id,
-    name: name || `Player ${id}`,
-    lat: lat || DEFAULT_GAME_STATE.safeZoneCenter[0],
-    lon: lon || DEFAULT_GAME_STATE.safeZoneCenter[1],
-    score: 0,
+  const player = {
+    id,
+    lat,
+    lon,
     hp: 100,
-    isAlive: true,
+    score: 0,
+    visitedObjectives: [],
   };
-  db.players.push(newPlayer);
+
+  game.players.push(player);
   writeDB(db);
 
-  res.status(201).json({ message: `Player ${id} created`, player: newPlayer });
+  res.json(player);
 });
 
 // Update player position, score, hp, etc.
-app.post("/api/players/update/:id", (req, res) => {
-  const playerId = parseInt(req.params.id);
-  const updates = req.body;
-  let db = readDB();
+app.post("/api/players/update", async (req, res) => {
+  const { gameId, id, lat, lon, hp, score, visitedObjectives } = req.body;
+  const db = await readDB();
 
-  const playerIndex = db.players.findIndex((p) => p.id === playerId);
+  const game = db.games[gameId];
+  if (!game) return res.status(404).json({ error: "Game not found" });
 
-  if (playerIndex !== -1) {
-    db.players[playerIndex] = {
-      ...db.players[playerIndex],
-      ...updates,
-    };
-  } else {
-    return res
-      .status(404)
-      .json({
-        error: `Player with ID ${playerId} not found. Please create the player first.`,
-      });
-  }
+  const player = game.players.find((p) => p.id === id);
+  if (!player) return res.status(404).json({ error: "Player not found" });
 
-  writeDB(db);
-  res.json({
-    message: `Player ${playerId} updated`,
-    player: db.players[playerIndex],
-  });
+  // Update only the fields that were provided
+  if (lat !== undefined) player.lat = lat;
+  if (lon !== undefined) player.lon = lon;
+  if (hp !== undefined) player.hp = hp;
+  if (score !== undefined) player.score = score;
+  if (visitedObjectives !== undefined)
+    player.visitedObjectives = visitedObjectives;
+
+  console.log("Updated player:", player);
+
+  await writeDB(db);
+  res.json({ ok: true, player });
 });
 
 // GeoJSON objectives
@@ -260,8 +262,7 @@ app.get("/geojson", async (req, res) => {
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Overpass API error (${response.status}): ${errorText}`);
+      console.error(`Overpass API error ${response.status}`);
       throw new Error(`Overpass API error: ${response.statusText}`);
     }
 
@@ -310,5 +311,4 @@ app.get("/geocode", async (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
-  readDB();
 });

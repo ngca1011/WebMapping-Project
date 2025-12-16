@@ -193,11 +193,6 @@
             overflow: hidden;
         }
 
-        #playerSelector {
-            display: flex;
-            gap: 10px;
-        }
-
         .player-btn {
             padding: 10px 18px;
             font-size: 1.1em;
@@ -213,16 +208,6 @@
             border-color: #000;
             transform: scale(1.05);
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-        }
-
-        #selectP1 {
-            background: #007bff;
-            color: white;
-        }
-
-        #selectP2 {
-            background: #dc3545;
-            color: white;
         }
 
         #timer {
@@ -312,18 +297,15 @@
         </div>
     </div>
 
+    <div id="inviteBox" style="display:none; margin-top:10px;">
+        <strong>Invite Player 2:</strong><br />
+        <a id="inviteLink" href="#" target="_blank"></a>
+    </div>
+
     <div id="bottom-bar">
         <div id="player-huds"></div>
         <div style="display: flex; align-items: center; gap: 30px">
             <span id="timer">Next shrink in: --:--</span>
-            <div id="playerSelector">
-                <button id="selectP1" class="player-btn active" type="button">
-                    P1 Control
-                </button>
-                <button id="selectP2" class="player-btn" type="button">
-                    P2 Control
-                </button>
-            </div>
             <button id="endGameButton" class="btn" type="button" style="display: none">
                 End Game
             </button>
@@ -331,9 +313,10 @@
     </div>
 
     <script type="module">
-        import {BattleRoyaleGame} from "./js/battleRoyalGame.js"
+        import { BattleRoyaleGame } from "./js/battleRoyalGame.js"
 
         const game = new BattleRoyaleGame();
+        await game.store()
     </script>
 </body>
 
