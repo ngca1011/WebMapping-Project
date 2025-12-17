@@ -1,6 +1,7 @@
 /* eslint-disable no-undef */
 
 import { Player } from "./player.js";
+import { GameAPI } from "./gameAPI.js";
 import {
   createAmenityPopup,
   setupIcons,
@@ -27,6 +28,7 @@ export class BattleRoyaleGame {
       currentRadius: 6000,
       objectiveTypes: [],
       lastShrinkTimestamp: Date.now(),
+      shrinkAmountMeters: 500,
     };
 
     this.currentCircle = null;
@@ -37,7 +39,6 @@ export class BattleRoyaleGame {
     this.shrinkTimeout = null;
 
     this.SHRINK_INTERVAL_MS = 60000;
-    this.SHRINK_RADIUS = 500;
     this.OBJECTIVE_GRAB_RANGE = 30;
 
     this.icons = setupIcons();
@@ -55,17 +56,7 @@ export class BattleRoyaleGame {
       return;
     }
     // 1. Create game on server
-    const res = await fetch("http://localhost:3000/api/game/create", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        gameState: {
-          safeZoneCenter: this.city_coord,
-          currentRadius: 6000,
-          status: "SETUP",
-        },
-      }),
-    });
+    const res = await GameAPI.createGame(this.gameState);
 
     if (!res.ok) {
       alert("Failed to create game");
@@ -134,9 +125,11 @@ export class BattleRoyaleGame {
   async loadFullStateFromServer() {
     if (!this.gameId) return;
     try {
-      const res = await fetch(`http://localhost:3000/api/game/${this.gameId}`);
-      if (!res.ok) throw new Error("Server not reachable");
-      const data = await res.json();
+      if (this.controlledPlayerId !== 1) {
+        document.getElementById("configPanel").style.display = "none";
+      }
+
+      const data = await GameAPI.getGame(this.gameId);
 
       this.gameState = { ...this.gameState, ...(data.gameState || {}) };
       this.city_coord = this.gameState.safeZoneCenter;
@@ -188,19 +181,14 @@ export class BattleRoyaleGame {
       if (!this.gameId) return;
 
       try {
-        const res = await fetch(
-          `http://localhost:3000/api/game/${this.gameId}`
-        );
-        if (!res.ok) return;
-
-        const data = await res.json();
+        const data = await GameAPI.getGame(this.gameId);
 
         const newCenter = data.gameState.safeZoneCenter;
         if (
           this.city_coord[0] !== newCenter[0] ||
           this.city_coord[1] !== newCenter[1]
         ) {
-          this.gameState.safeZoneCenter = newCenter
+          this.gameState.safeZoneCenter = newCenter;
           this.city_coord = newCenter;
           this.map.flyTo(this.city_coord, 12);
           await this.updateCircle();
@@ -233,7 +221,10 @@ export class BattleRoyaleGame {
           }
 
           // Only update if it's not the controlled player or the game is still in SETUP
-          if (localPlayer.id !== this.controlledPlayerId || this.gameState.status === "SETUP") {
+          if (
+            localPlayer.id !== this.controlledPlayerId ||
+            this.gameState.status === "SETUP"
+          ) {
             localPlayer.lat = serverPlayer.lat;
             localPlayer.lon = serverPlayer.lon;
             localPlayer.marker.setLatLng([serverPlayer.lat, serverPlayer.lon]);
@@ -386,14 +377,12 @@ export class BattleRoyaleGame {
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        const url = `http://localhost:3000/geojson?types=${objectiveTypes.join(
-          ","
-        )}&lat=${lat}&lon=${lon}&radius=${this.gameState.currentRadius}`;
-
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-        this.allObjectivesGeoJSON = await res.json();
+        this.allObjectivesGeoJSON = await GameAPI.fetchObjectives(
+          objectiveTypes,
+          lat,
+          lon,
+          this.gameState.currentRadius
+        );
         await this.buildObjectiveLayer();
         console.log(
           `Loaded ${this.allObjectivesGeoJSON.features.length} objectives!`
@@ -496,16 +485,13 @@ export class BattleRoyaleGame {
       lastShrinkTimestamp: Date.now(),
     };
 
-    await fetch(`http://localhost:3000/api/game/${this.gameId}/state`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        status: "ACTIVE",
-        safeZoneCenter: this.city_coord,
-        currentRadius: radius,
-        objectiveTypes: selected,
-        lastShrinkTimestamp: Date.now(),
-      }),
+    await GameAPI.updateGameState(this.gameId, {
+      status: "ACTIVE",
+      safeZoneCenter: this.city_coord,
+      currentRadius: radius,
+      objectiveTypes: selected,
+      lastShrinkTimestamp: Date.now(),
+      shrinkAmountMeters: this.gameState.shrinkAmountMeters,
     });
 
     await this.loadAllObjectivesOnce();
@@ -529,19 +515,15 @@ export class BattleRoyaleGame {
     this.shrinkTimeout = setTimeout(async () => {
       this.gameState.currentRadius = Math.max(
         0,
-        this.gameState.currentRadius - this.SHRINK_RADIUS
+        this.gameState.currentRadius - this.gameState.shrinkAmountMeters
       );
       if (this.gameState.currentRadius <= 0) return await this.handleGameOver();
 
       this.gameState.lastShrinkTimestamp = Date.now();
 
-      fetch(`http://localhost:3000/api/game/${this.gameId}/state`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          currentRadius: this.gameState.currentRadius,
-          lastShrinkTimestamp: this.gameState.lastShrinkTimestamp,
-        }),
+      GameAPI.updateGameState(this.gameId, {
+        currentRadius: this.gameState.currentRadius,
+        lastShrinkTimestamp: this.gameState.lastShrinkTimestamp,
       });
 
       await this.updateCircle();
@@ -624,17 +606,12 @@ export class BattleRoyaleGame {
     await this.updateCircle();
     this.updateDraggable();
 
-    await fetch(`http://localhost:3000/api/game/${this.gameId}/state`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        status: "SETUP",
-        currentRadius: 6000,
-        objectiveTypes: [],
-        lastShrinkTimestamp: Date.now(),
-      }),
+    await GameAPI.updateGameState(this.gameId, {
+      status: "SETUP",
+      currentRadius: 6000,
+      objectiveTypes: [],
+      lastShrinkTimestamp: Date.now(),
     });
-
     // Restart polling
     this.startPolling();
   }
@@ -676,9 +653,7 @@ export class BattleRoyaleGame {
     btn.disabled = true;
     btn.textContent = "...";
     try {
-      const res = await fetch(
-        `http://localhost:3000/geocode?q=${encodeURIComponent(q)}`
-      );
+      const res = await GameAPI.geocode(q);
       const data = await res.json();
       if (!data.length) return alert("Not found");
       this.city_coord = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
@@ -696,13 +671,11 @@ export class BattleRoyaleGame {
         await this.players[id].save();
       }
       this.gameState.safeZoneCenter = this.city_coord;
-      await fetch(`http://localhost:3000/api/game/${this.gameId}/state`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          safeZoneCenter: this.city_coord,
-        }),
+
+      await GameAPI.updateGameState(this.gameId, {
+        safeZoneCenter: this.city_coord,
       });
+
       await this.updateCircle();
     } catch (e) {
       console.log(e);
@@ -714,6 +687,7 @@ export class BattleRoyaleGame {
   }
 
   setupEventListeners() {
+    if (this.controlledPlayerId !== 1) return;
     document.getElementById("startGameButton").onclick = () => this.startGame();
     document.getElementById("searchButton").onclick = () => this.handleSearch();
     document.getElementById("endGameButton").onclick = async () =>
@@ -724,16 +698,21 @@ export class BattleRoyaleGame {
 
       this.gameState.currentRadius = newRadius;
       await this.updateCircle();
+      await GameAPI.updateGameState(this.gameId, {
+        currentRadius: newRadius,
+      });
+    };
+    document.getElementById("shrinkAmountRange").oninput = async (e) => {
+      const km = Number(e.target.value);
+      const meters = km * 1000;
 
-      if (this.gameId) {
-        await fetch(`http://localhost:3000/api/game/${this.gameId}/state`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            currentRadius: newRadius,
-          }),
-        });
-      }
+      document.getElementById("shrinkAmountValue").textContent = km.toFixed(1);
+
+      // sync state
+      this.gameState.shrinkAmountMeters = meters;
+      await GameAPI.updateGameState(this.gameId, {
+        shrinkAmountMeters: meters,
+      });
     };
   }
 }

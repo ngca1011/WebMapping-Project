@@ -21,6 +21,7 @@ const DEFAULT_GAME_STATE = {
   currentRadius: 6000,
   objectiveTypes: [],
   lastShrinkTimestamp: null,
+  shrinkAmountMeters: 500,
 };
 
 async function readDB() {
@@ -137,6 +138,7 @@ app.patch("/api/game/:gameId/state", async (req, res) => {
     "shrinkInterval",
     "shrinkAmount",
     "lastShrinkTimestamp",
+    "shrinkAmountMeters"
   ];
 
   for (const key of allowedFields) {

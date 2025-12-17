@@ -1,36 +1,6 @@
 {
   "games": {
-    "2e4b7c9d-0210-4d20-9928-b7ef07ebeec6": {
-      "gameState": {
-        "status": "SETUP",
-        "safeZoneCenter": [
-          49.01578,
-          8.39137
-        ],
-        "currentRadius": 5000,
-        "objectiveTypes": [],
-        "lastShrinkTimestamp": 1765900820329
-      },
-      "players": [
-        {
-          "id": 1,
-          "lat": 49.01802290417701,
-          "lon": 8.393220335545696,
-          "hp": 100,
-          "score": 0,
-          "visitedObjectives": []
-        },
-        {
-          "id": 2,
-          "lat": 49.01457494215863,
-          "lon": 8.392860976998243,
-          "hp": 100,
-          "score": 0,
-          "visitedObjectives": []
-        }
-      ]
-    },
-    "5ca0cb42-21d1-4431-a999-b80381163c6a": {
+    "f794260f-f9d1-43e8-87dd-9514c47e0553": {
       "gameState": {
         "status": "SETUP",
         "safeZoneCenter": [
@@ -39,28 +9,65 @@
         ],
         "currentRadius": 6000,
         "objectiveTypes": [],
-        "lastShrinkTimestamp": 1765901313974
+        "lastShrinkTimestamp": 1765979567527,
+        "shrinkAmountMeters": 1200
       },
       "players": [
         {
           "id": 1,
-          "lat": 49.013501796804874,
-          "lon": 8.39300832918726,
+          "lat": 49.03133799304782,
+          "lon": 8.37156769462855,
           "hp": 100,
           "score": 0,
           "visitedObjectives": []
         },
         {
           "id": 2,
-          "lat": 49.016823970840484,
-          "lon": 8.390032146546577,
+          "lat": 49.01400432817987,
+          "lon": 8.487598838264342,
           "hp": 100,
           "score": 0,
           "visitedObjectives": []
         }
       ]
     },
-    "dfced089-a7a1-44ec-911a-fed14d541cc0": {
+    "2586e45f-ebbb-4736-8759-41c7070508ba": {
+      "gameState": {
+        "status": "ACTIVE",
+        "safeZoneCenter": [
+          48.7784485,
+          9.1800132
+        ],
+        "currentRadius": 6000,
+        "objectiveTypes": [
+          "pub",
+          "bar",
+          "restaurant",
+          "cafe"
+        ],
+        "lastShrinkTimestamp": 1765981643969,
+        "shrinkAmountMeters": 700
+      },
+      "players": [
+        {
+          "id": 1,
+          "lat": 48.79137601135032,
+          "lon": 9.203976880298793,
+          "hp": 100,
+          "score": 0,
+          "visitedObjectives": []
+        },
+        {
+          "id": 2,
+          "lat": 48.78221202988562,
+          "lon": 9.1406349253533,
+          "hp": 100,
+          "score": 0,
+          "visitedObjectives": []
+        }
+      ]
+    },
+    "1058f38e-6e9d-424a-b83f-9487594621b3": {
       "gameState": {
         "status": "SETUP",
         "safeZoneCenter": [
@@ -69,551 +76,29 @@
         ],
         "currentRadius": 6000,
         "objectiveTypes": [],
-        "lastShrinkTimestamp": 1765901336364
+        "lastShrinkTimestamp": 1765981962382,
+        "shrinkAmountMeters": 2000
       },
       "players": [
         {
           "id": 1,
-          "lat": 49.01595503352056,
-          "lon": 8.3894462049713,
+          "lat": 49.0055600248439,
+          "lon": 8.369006979748251,
           "hp": 100,
           "score": 0,
           "visitedObjectives": []
         },
         {
           "id": 2,
-          "lat": 49.01755893299234,
-          "lon": 8.391757080510311,
+          "lat": 49.013946287874255,
+          "lon": 8.430136022060728,
           "hp": 100,
           "score": 0,
           "visitedObjectives": []
         }
       ]
     },
-    "f2f81286-3013-4d81-b25b-5bcaefb76a1f": {
-      "gameState": {
-        "status": "ACTIVE",
-        "safeZoneCenter": [
-          49.01578,
-          8.39137
-        ],
-        "currentRadius": 2000,
-        "objectiveTypes": [
-          "pub",
-          "bar",
-          "restaurant",
-          "cafe"
-        ],
-        "lastShrinkTimestamp": 1765902208319
-      },
-      "players": [
-        {
-          "id": 1,
-          "lat": 48.99283502710549,
-          "lon": 8.336080567421751,
-          "hp": 100,
-          "score": 0,
-          "visitedObjectives": []
-        },
-        {
-          "id": 2,
-          "lat": 49.016367944764646,
-          "lon": 8.39974960368751,
-          "hp": 95,
-          "score": 0,
-          "visitedObjectives": []
-        }
-      ]
-    },
-    "64f31f3c-32da-423f-9e86-3454e4eef53c": {
-      "gameState": {
-        "status": "ACTIVE",
-        "safeZoneCenter": [
-          49.01578,
-          8.39137
-        ],
-        "currentRadius": 6000,
-        "objectiveTypes": [
-          "pub",
-          "bar",
-          "restaurant",
-          "cafe"
-        ],
-        "lastShrinkTimestamp": 1765902925217
-      },
-      "players": [
-        {
-          "id": 1,
-          "lat": 49.019408274540545,
-          "lon": 8.336718021713661,
-          "hp": 100,
-          "score": 0,
-          "visitedObjectives": []
-        },
-        {
-          "id": 2,
-          "lat": 49.028638927376555,
-          "lon": 8.413496229893658,
-          "hp": 70,
-          "score": 0,
-          "visitedObjectives": []
-        }
-      ]
-    },
-    "fbf888ff-18e3-46f1-a90d-74f83e2fed44": {
-      "gameState": {
-        "status": "ACTIVE",
-        "safeZoneCenter": [
-          49.01578,
-          8.39137
-        ],
-        "currentRadius": 5500,
-        "objectiveTypes": [
-          "pub",
-          "bar",
-          "restaurant",
-          "cafe"
-        ],
-        "lastShrinkTimestamp": 1765903054330
-      },
-      "players": [
-        {
-          "id": 1,
-          "lat": 49.02492757434448,
-          "lon": 8.300709547183867,
-          "hp": 50,
-          "score": 0,
-          "visitedObjectives": []
-        },
-        {
-          "id": 2,
-          "lat": 49.01784799050478,
-          "lon": 8.391926734493406,
-          "hp": 100,
-          "score": 0,
-          "visitedObjectives": []
-        }
-      ]
-    },
-    "9b35a89a-37aa-40ba-8067-065b757e41fb": {
-      "gameState": {
-        "status": "ACTIVE",
-        "safeZoneCenter": [
-          49.01578,
-          8.39137
-        ],
-        "currentRadius": 6000,
-        "objectiveTypes": [
-          "pub",
-          "bar",
-          "restaurant",
-          "cafe"
-        ],
-        "lastShrinkTimestamp": 1765903545127
-      },
-      "players": [
-        {
-          "id": 1,
-          "lat": 49.02728885106592,
-          "lon": 8.337219163379388,
-          "hp": 80,
-          "score": 0,
-          "visitedObjectives": []
-        },
-        {
-          "id": 2,
-          "lat": 49.01783371904269,
-          "lon": 8.491726791327434,
-          "hp": 0,
-          "score": 0,
-          "visitedObjectives": []
-        }
-      ]
-    },
-    "aa6b7789-0450-4631-8e65-235222460351": {
-      "gameState": {
-        "status": "ACTIVE",
-        "safeZoneCenter": [
-          49.01578,
-          8.39137
-        ],
-        "currentRadius": 6000,
-        "objectiveTypes": [
-          "pub",
-          "bar",
-          "restaurant",
-          "cafe"
-        ],
-        "lastShrinkTimestamp": 1765904040273
-      },
-      "players": [
-        {
-          "id": 1,
-          "lat": 49.02154970700344,
-          "lon": 8.35030746223454,
-          "hp": 100,
-          "score": 0,
-          "visitedObjectives": []
-        },
-        {
-          "id": 2,
-          "lat": 49.01648190048646,
-          "lon": 8.443694605698838,
-          "hp": 100,
-          "score": 0,
-          "visitedObjectives": []
-        }
-      ]
-    },
-    "cf01acb3-3c46-48da-af3c-c62f3102b853": {
-      "gameState": {
-        "status": "ACTIVE",
-        "safeZoneCenter": [
-          49.01578,
-          8.39137
-        ],
-        "currentRadius": 5500,
-        "objectiveTypes": [
-          "pub",
-          "bar",
-          "restaurant",
-          "cafe"
-        ],
-        "lastShrinkTimestamp": 1765904189851
-      },
-      "players": [
-        {
-          "id": 1,
-          "lat": 49.02008341961521,
-          "lon": 8.33311637330383,
-          "hp": 75,
-          "score": 0,
-          "visitedObjectives": []
-        },
-        {
-          "id": 2,
-          "lat": 49.012878048409476,
-          "lon": 8.511968964002277,
-          "hp": 40,
-          "score": 0,
-          "visitedObjectives": []
-        }
-      ]
-    },
-    "323f56b5-cbb8-4dbd-8d76-a3a9e1e33d32": {
-      "gameState": {
-        "status": "ACTIVE",
-        "safeZoneCenter": [
-          49.01578,
-          8.39137
-        ],
-        "currentRadius": 5500,
-        "objectiveTypes": [
-          "pub",
-          "bar",
-          "restaurant",
-          "cafe"
-        ],
-        "lastShrinkTimestamp": 1765904302326
-      },
-      "players": [
-        {
-          "id": 1,
-          "lat": 49.027624846068356,
-          "lon": 8.351999997832175,
-          "hp": 60,
-          "score": 0,
-          "visitedObjectives": []
-        },
-        {
-          "id": 2,
-          "lat": 49.021775731526816,
-          "lon": 8.477130251312795,
-          "hp": 0,
-          "score": 0,
-          "visitedObjectives": []
-        }
-      ]
-    },
-    "92d1e259-9fae-4e27-a8d0-ea0e10955b1a": {
-      "gameState": {
-        "status": "ACTIVE",
-        "safeZoneCenter": [
-          49.01578,
-          8.39137
-        ],
-        "currentRadius": 5500,
-        "objectiveTypes": [
-          "pub",
-          "bar",
-          "restaurant",
-          "cafe"
-        ],
-        "lastShrinkTimestamp": 1765904415325
-      },
-      "players": [
-        {
-          "id": 1,
-          "lat": 49.01963357972747,
-          "lon": 8.344791368767863,
-          "hp": 90,
-          "score": 0,
-          "visitedObjectives": []
-        },
-        {
-          "id": 2,
-          "lat": 49.016707295667786,
-          "lon": 8.480402202335316,
-          "hp": 0,
-          "score": 0,
-          "visitedObjectives": []
-        }
-      ]
-    },
-    "89ebfd73-ef77-4701-b561-1209490ee4e8": {
-      "gameState": {
-        "status": "ACTIVE",
-        "safeZoneCenter": [
-          49.01578,
-          8.39137
-        ],
-        "currentRadius": 2000,
-        "objectiveTypes": [
-          "pub",
-          "bar",
-          "restaurant",
-          "cafe"
-        ],
-        "lastShrinkTimestamp": 1765905139318
-      },
-      "players": [
-        {
-          "id": 1,
-          "lat": 49.03753363991767,
-          "lon": 8.414324519392885,
-          "hp": 0,
-          "score": 1,
-          "visitedObjectives": [
-            "49.000396,8.402304,restaurant"
-          ]
-        },
-        {
-          "id": 2,
-          "lat": 49.032690789122135,
-          "lon": 8.46563583166338,
-          "hp": 0,
-          "score": 0,
-          "visitedObjectives": []
-        }
-      ]
-    },
-    "45f1222b-9369-4518-a752-4b833310b74d": {
-      "gameState": {
-        "status": "ACTIVE",
-        "safeZoneCenter": [
-          49.01578,
-          8.39137
-        ],
-        "currentRadius": 4500,
-        "objectiveTypes": [
-          "pub",
-          "bar",
-          "restaurant",
-          "cafe"
-        ],
-        "lastShrinkTimestamp": 1765905470320
-      },
-      "players": [
-        {
-          "id": 1,
-          "lat": 49.01670706542425,
-          "lon": 8.343070987040148,
-          "hp": 100,
-          "score": 0,
-          "visitedObjectives": []
-        },
-        {
-          "id": 2,
-          "lat": 49.03022000836993,
-          "lon": 8.508881298823741,
-          "hp": 0,
-          "score": 0,
-          "visitedObjectives": []
-        }
-      ]
-    },
-    "bd975927-1369-4430-ba1b-14d38402b7e4": {
-      "gameState": {
-        "status": "ACTIVE",
-        "safeZoneCenter": [
-          49.01578,
-          8.39137
-        ],
-        "currentRadius": 4000,
-        "objectiveTypes": [
-          "pub",
-          "bar",
-          "restaurant",
-          "cafe"
-        ],
-        "lastShrinkTimestamp": 1765907144323
-      },
-      "players": [
-        {
-          "id": 1,
-          "hp": 65,
-          "visitedObjectives": [],
-          "lat": 49.02751318961578,
-          "lon": 8.371550174617948
-        },
-        {
-          "id": 2,
-          "hp": 85,
-          "visitedObjectives": [],
-          "lat": 49.03223909575144,
-          "lon": 8.396661461319965
-        }
-      ]
-    },
-    "09582d3a-eefe-476c-86ee-804a29503055": {
-      "gameState": {
-        "status": "ACTIVE",
-        "safeZoneCenter": [
-          49.01578,
-          8.39137
-        ],
-        "currentRadius": 4500,
-        "objectiveTypes": [
-          "pub",
-          "bar",
-          "restaurant",
-          "cafe"
-        ],
-        "lastShrinkTimestamp": 1765907351325
-      },
-      "players": [
-        {
-          "id": 1,
-          "hp": 90,
-          "visitedObjectives": [],
-          "lat": 49.01175424816733,
-          "lon": 8.369159156815918
-        },
-        {
-          "id": 2,
-          "hp": 95,
-          "visitedObjectives": [],
-          "lat": 49.03089550946772,
-          "lon": 8.410737694230123
-        }
-      ]
-    },
-    "d64a2cf2-b595-4e3b-baba-0e8f8b66a05d": {
-      "gameState": {
-        "status": "ACTIVE",
-        "safeZoneCenter": [
-          49.01578,
-          8.39137
-        ],
-        "currentRadius": 5500,
-        "objectiveTypes": [
-          "pub",
-          "bar",
-          "restaurant",
-          "cafe"
-        ],
-        "lastShrinkTimestamp": 1765907524317
-      },
-      "players": [
-        {
-          "id": 1,
-          "hp": 85,
-          "visitedObjectives": [],
-          "lat": 49.02031095799148,
-          "lon": 8.329713194685919
-        },
-        {
-          "id": 2,
-          "hp": 90,
-          "visitedObjectives": []
-        }
-      ]
-    },
-    "38b052a9-fac1-4e2b-b34a-111f234f1a5b": {
-      "gameState": {
-        "status": "ACTIVE",
-        "safeZoneCenter": [
-          49.01578,
-          8.39137
-        ],
-        "currentRadius": 5000,
-        "objectiveTypes": [
-          "pub",
-          "bar",
-          "restaurant",
-          "cafe"
-        ],
-        "lastShrinkTimestamp": 1765907720317
-      },
-      "players": [
-        {
-          "id": 1,
-          "lat": 49.024593028500135,
-          "lon": 8.350282970506255,
-          "hp": 85,
-          "score": 0,
-          "visitedObjectives": []
-        },
-        {
-          "id": 2,
-          "lat": 49.034489728908014,
-          "lon": 8.403137784651022,
-          "hp": 70,
-          "score": 3,
-          "visitedObjectives": [
-            "49.055992,8.399395,restaurant",
-            "49.053387,8.393630,cafe",
-            "49.053769,8.374254,restaurant"
-          ]
-        }
-      ]
-    },
-    "2a6f7430-cb22-42a9-a310-2ad414335a30": {
-      "gameState": {
-        "status": "ACTIVE",
-        "safeZoneCenter": [
-          49.01578,
-          8.39137
-        ],
-        "currentRadius": 4000,
-        "objectiveTypes": [
-          "pub",
-          "bar",
-          "restaurant",
-          "cafe"
-        ],
-        "lastShrinkTimestamp": 1765916115446
-      },
-      "players": [
-        {
-          "id": 1,
-          "lat": 49.01478636366507,
-          "lon": 8.393376341329256,
-          "hp": 100,
-          "score": 0,
-          "visitedObjectives": []
-        },
-        {
-          "id": 2,
-          "lat": 49.0139275749862,
-          "lon": 8.391735966756679,
-          "hp": 100,
-          "score": 0,
-          "visitedObjectives": []
-        }
-      ]
-    },
-    "ed9d57ce-54c2-4d93-834d-4c66697d4eef": {
+    "7a51f347-e2d7-4f3b-aa16-4b65bebc8128": {
       "gameState": {
         "status": "SETUP",
         "safeZoneCenter": [
@@ -622,28 +107,21 @@
         ],
         "currentRadius": 6000,
         "objectiveTypes": [],
-        "lastShrinkTimestamp": 1765916651474
+        "lastShrinkTimestamp": 1765982723176,
+        "shrinkAmountMeters": 500
       },
       "players": [
         {
           "id": 1,
-          "lat": 49.04573705550383,
-          "lon": 8.378454000413274,
-          "hp": 100,
-          "score": 0,
-          "visitedObjectives": []
-        },
-        {
-          "id": 2,
-          "lat": 49.0131053787438,
-          "lon": 8.43991667688457,
+          "lat": 49.01696801043081,
+          "lon": 8.392686109808853,
           "hp": 100,
           "score": 0,
           "visitedObjectives": []
         }
       ]
     },
-    "b264be7f-b2c8-4027-8dd5-1b5ab03792b6": {
+    "731d2a2d-cb74-4873-94aa-45fbc737c755": {
       "gameState": {
         "status": "SETUP",
         "safeZoneCenter": [
@@ -652,28 +130,29 @@
         ],
         "currentRadius": 6000,
         "objectiveTypes": [],
-        "lastShrinkTimestamp": null
+        "lastShrinkTimestamp": 1765982723176,
+        "shrinkAmountMeters": 500
       },
       "players": [
         {
           "id": 1,
-          "lat": 49.016430613462795,
-          "lon": 8.391603182067529,
+          "lat": 49.01484193208016,
+          "lon": 8.389499877850058,
           "hp": 100,
           "score": 0,
           "visitedObjectives": []
         },
         {
           "id": 2,
-          "lat": 49.018177663482675,
-          "lon": 8.389495524709941,
+          "lat": 49.013471818713406,
+          "lon": 8.391635548016081,
           "hp": 100,
           "score": 0,
           "visitedObjectives": []
         }
       ]
     },
-    "dbd88446-1476-414e-8699-f2d4b8edfc7b": {
+    "193d1f06-a6cf-4e5c-b88e-db0c3253b96c": {
       "gameState": {
         "status": "SETUP",
         "safeZoneCenter": [
@@ -682,28 +161,21 @@
         ],
         "currentRadius": 6000,
         "objectiveTypes": [],
-        "lastShrinkTimestamp": null
+        "lastShrinkTimestamp": 1765982733583,
+        "shrinkAmountMeters": 500
       },
       "players": [
         {
           "id": 1,
-          "lat": 49.015186635774796,
-          "lon": 8.391772129687265,
-          "hp": 100,
-          "score": 0,
-          "visitedObjectives": []
-        },
-        {
-          "id": 2,
-          "lat": 49.01445743717798,
-          "lon": 8.39252616087784,
+          "lat": 49.01701409870536,
+          "lon": 8.391717664380495,
           "hp": 100,
           "score": 0,
           "visitedObjectives": []
         }
       ]
     },
-    "73c8cf0a-ff9f-4b31-945d-081fac2f1021": {
+    "c4e074f5-97fe-448f-b71f-7b0125d3644f": {
       "gameState": {
         "status": "SETUP",
         "safeZoneCenter": [
@@ -712,270 +184,95 @@
         ],
         "currentRadius": 6000,
         "objectiveTypes": [],
-        "lastShrinkTimestamp": null
+        "lastShrinkTimestamp": 1765982733583,
+        "shrinkAmountMeters": 500
       },
       "players": [
         {
           "id": 1,
-          "lat": 49.01526498199292,
-          "lon": 8.390858160855208,
+          "lat": 49.03089032649029,
+          "lon": 8.392525086843948,
           "hp": 100,
           "score": 0,
           "visitedObjectives": []
         },
         {
           "id": 2,
-          "lat": 49.0150324417346,
-          "lon": 8.388979782949843,
+          "lat": 49.01152793741105,
+          "lon": 8.418958411605711,
           "hp": 100,
           "score": 0,
           "visitedObjectives": []
         }
       ]
     },
-    "40c057b2-8188-432c-b8ff-f36e7acf5956": {
+    "37efdc53-a655-410b-ac57-351000be0f6a": {
       "gameState": {
         "status": "ACTIVE",
         "safeZoneCenter": [
           49.01578,
           8.39137
         ],
-        "currentRadius": 5500,
+        "currentRadius": 6300,
         "objectiveTypes": [
           "pub",
-          "bar",
-          "restaurant",
-          "cafe"
+          "cafe",
+          "post_office"
         ],
-        "lastShrinkTimestamp": 1765917159330
+        "lastShrinkTimestamp": 1765982907113,
+        "shrinkAmountMeters": 1200
       },
       "players": [
         {
           "id": 1,
-          "lat": 49.03291227475699,
-          "lon": 8.391516531612979,
+          "lat": 49.01766626781293,
+          "lon": 8.390394079497261,
           "hp": 100,
           "score": 0,
           "visitedObjectives": []
         },
         {
           "id": 2,
-          "lat": 49.03810797290679,
-          "lon": 8.429581152713817,
-          "hp": 50,
-          "score": 0,
-          "visitedObjectives": []
-        }
-      ]
-    },
-    "bcff7117-2ead-41ed-9e33-5abae98a173c": {
-      "gameState": {
-        "status": "ACTIVE",
-        "safeZoneCenter": [
-          49.01578,
-          8.39137
-        ],
-        "currentRadius": 6000,
-        "objectiveTypes": [
-          "pub",
-          "bar",
-          "restaurant",
-          "cafe"
-        ],
-        "lastShrinkTimestamp": 1765917213490
-      },
-      "players": [
-        {
-          "id": 1,
-          "lat": 49.01460336561883,
-          "lon": 8.39176271594125,
-          "hp": 100,
-          "score": 0,
-          "visitedObjectives": []
-        },
-        {
-          "id": 2,
-          "lat": 49.01600892198614,
-          "lon": 8.393226278629653,
+          "lat": 49.015222999842294,
+          "lon": 8.389399275067188,
           "hp": 100,
           "score": 0,
           "visitedObjectives": []
         }
       ]
     },
-    "6ee7fbc3-a9b7-43c2-8b02-8a9bd15f7209": {
-      "gameState": {
-        "status": "ACTIVE",
-        "safeZoneCenter": [
-          49.01578,
-          8.39137
-        ],
-        "currentRadius": 6000,
-        "objectiveTypes": [
-          "pub",
-          "bar",
-          "restaurant",
-          "cafe"
-        ],
-        "lastShrinkTimestamp": 1765917359395
-      },
-      "players": [
-        {
-          "id": 1,
-          "lat": 49.018263248792806,
-          "lon": 8.391816258156995,
-          "hp": 100,
-          "score": 0,
-          "visitedObjectives": []
-        },
-        {
-          "id": 2,
-          "lat": 49.01702089529379,
-          "lon": 8.392764943553553,
-          "hp": 100,
-          "score": 0,
-          "visitedObjectives": []
-        }
-      ]
-    },
-    "814e7b69-a229-41f7-a218-0f1dbeeac69f": {
-      "gameState": {
-        "status": "ACTIVE",
-        "safeZoneCenter": [
-          49.01578,
-          8.39137
-        ],
-        "currentRadius": 6000,
-        "objectiveTypes": [
-          "pub",
-          "bar",
-          "restaurant",
-          "cafe"
-        ],
-        "lastShrinkTimestamp": 1765917441606
-      },
-      "players": [
-        {
-          "id": 1,
-          "lat": 49.01347854453075,
-          "lon": 8.391589184813022,
-          "hp": 100,
-          "score": 0,
-          "visitedObjectives": []
-        },
-        {
-          "id": 2,
-          "lat": 49.01539488898228,
-          "lon": 8.38963373204686,
-          "hp": 100,
-          "score": 0,
-          "visitedObjectives": []
-        }
-      ]
-    },
-    "3d229392-1820-4aec-b442-ea366bdb6253": {
-      "gameState": {
-        "status": "ACTIVE",
-        "safeZoneCenter": [
-          49.01578,
-          8.39137
-        ],
-        "currentRadius": 4500,
-        "objectiveTypes": [
-          "pub",
-          "bar",
-          "restaurant",
-          "cafe"
-        ],
-        "lastShrinkTimestamp": 1765917808442
-      },
-      "players": [
-        {
-          "id": 1,
-          "lat": 49.01522265497543,
-          "lon": 8.38907103338824,
-          "hp": 100,
-          "score": 0,
-          "visitedObjectives": []
-        },
-        {
-          "id": 2,
-          "lat": 49.02976703754138,
-          "lon": 8.418289181416887,
-          "hp": 60,
-          "score": 0,
-          "visitedObjectives": []
-        }
-      ]
-    },
-    "ec630278-85f2-44d4-a211-eb7ccef933d5": {
-      "gameState": {
-        "status": "ACTIVE",
-        "safeZoneCenter": [
-          49.01578,
-          8.39137
-        ],
-        "currentRadius": 5000,
-        "objectiveTypes": [
-          "bar"
-        ],
-        "lastShrinkTimestamp": 1765919504451
-      },
-      "players": [
-        {
-          "id": 1,
-          "lat": 49.019519469134856,
-          "lon": 8.416202158145245,
-          "hp": 100,
-          "score": 4,
-          "visitedObjectives": [
-            "49.020941,8.370610,bar",
-            "49.009324,8.375526,bar",
-            "49.007845,8.384949,bar",
-            "49.016437,8.393237,bar"
-          ]
-        },
-        {
-          "id": 2,
-          "lat": 49.0277388229807,
-          "lon": 8.355776685977274,
-          "hp": 100,
-          "score": 0,
-          "visitedObjectives": []
-        }
-      ]
-    },
-    "8739040e-560c-4235-9576-02e596ee1059": {
+    "bd73e787-8e6a-438f-9131-51f7f60ea061": {
       "gameState": {
         "status": "SETUP",
         "safeZoneCenter": [
-          21.0283334,
-          105.854041
+          48.7784485,
+          9.1800132
         ],
-        "currentRadius": 6000,
+        "currentRadius": 6500,
         "objectiveTypes": [],
-        "lastShrinkTimestamp": 1765919701423
+        "lastShrinkTimestamp": 1765982920172,
+        "shrinkAmountMeters": 1400
       },
       "players": [
         {
           "id": 1,
-          "lat": 21.04860745868223,
-          "lon": 105.84779596538505,
+          "lat": 49.01523109926204,
+          "lon": 8.39274773885619,
           "hp": 100,
           "score": 0,
           "visitedObjectives": []
         },
         {
           "id": 2,
-          "lat": 49.01141453741812,
-          "lon": 8.373806047283297,
+          "lat": 49.01800314854324,
+          "lon": 8.393378346211032,
           "hp": 100,
           "score": 0,
           "visitedObjectives": []
         }
       ]
     },
-    "69701b58-0142-469f-a27b-1d2f7a4a5d5e": {
+    "3380823f-f7db-4833-a597-d3e3ce70f400": {
       "gameState": {
         "status": "SETUP",
         "safeZoneCenter": [
@@ -984,51 +281,87 @@
         ],
         "currentRadius": 6000,
         "objectiveTypes": [],
-        "lastShrinkTimestamp": null
+        "lastShrinkTimestamp": 1765983004439,
+        "shrinkAmountMeters": 500
       },
       "players": [
         {
           "id": 1,
-          "lat": 49.016063135254825,
-          "lon": 8.393311819883872,
+          "lat": 49.01729893355326,
+          "lon": 8.388914995005345,
           "hp": 100,
           "score": 0,
           "visitedObjectives": []
         },
         {
           "id": 2,
-          "lat": 49.0179314704898,
-          "lon": 8.39062272722948,
+          "lat": 49.0160279519025,
+          "lon": 8.39012175285832,
           "hp": 100,
           "score": 0,
           "visitedObjectives": []
         }
       ]
     },
-    "774acf70-7c4a-45d2-9283-f8c4a4c579b2": {
+    "25d96910-0821-4f81-a367-415196621091": {
       "gameState": {
         "status": "SETUP",
         "safeZoneCenter": [
-          21.0283334,
-          105.854041
+          48.7784485,
+          9.1800132
         ],
         "currentRadius": 6000,
         "objectiveTypes": [],
-        "lastShrinkTimestamp": 1765923285764
+        "lastShrinkTimestamp": 1765983024007,
+        "shrinkAmountMeters": 500
       },
       "players": [
         {
           "id": 1,
-          "lat": 21.02202025938305,
-          "lon": 105.84093057770836,
+          "lat": 49.01451158708302,
+          "lon": 8.405060612128585,
           "hp": 100,
           "score": 0,
           "visitedObjectives": []
         },
         {
           "id": 2,
-          "lat": 21.039483053830345,
-          "lon": 105.87972465096868,
+          "lat": 49.013440756040765,
+          "lon": 8.392936170472893,
+          "hp": 100,
+          "score": 0,
+          "visitedObjectives": []
+        }
+      ]
+    },
+    "f57d0f35-bce0-48f1-be0d-a25b022db29b": {
+      "gameState": {
+        "status": "ACTIVE",
+        "safeZoneCenter": [
+          48.7784485,
+          9.1800132
+        ],
+        "currentRadius": 2900,
+        "objectiveTypes": [
+          "pub",
+          "cafe"
+        ],
+        "lastShrinkTimestamp": 1765983249118,
+        "shrinkAmountMeters": 1100
+      },
+      "players": [
+        {
+          "id": 1,
+          "lat": 48.78092083037808,
+          "lon": 9.179362045081879,
+          "hp": 100,
+          "score": 0,
+          "visitedObjectives": []
+        },
+        {
+          "id": 2,
+          "lat": 48.77941562414576,
+          "lon": 9.17986080975261,
           "hp": 100,
           "score": 0,
           "visitedObjectives": []
