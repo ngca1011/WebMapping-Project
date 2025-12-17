@@ -10,17 +10,19 @@ import {
 } from "./helper.js";
 export class BattleRoyaleGame {
   constructor() {
+    // Map setup
     this.city_coord = [49.01578, 8.39137];
     this.map = L.map("map").setView(this.city_coord, 12);
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "© OpenStreetMap contributors",
     }).addTo(this.map);
 
+    // Game identification from URL
     const { gameId, playerId } = getUrlParams();
-
     this.gameId = gameId;
-    this.controlledPlayerId = playerId || 1;
+    this.controlledPlayerId = playerId ? parseInt(playerId, 10) : 1;
 
+    // Core game state
     this.players = {};
     this.gameState = {
       status: "SETUP",
@@ -31,27 +33,31 @@ export class BattleRoyaleGame {
       shrinkAmountMeters: 500,
     };
 
-    this.currentCircle = null;
-    this.objectiveClusterLayer = null;
-    this.allObjectivesGeoJSON = null;
+    // Map layers
+    this.currentCircle = null; // Safe zone circle
+    this.objectiveClusterLayer = null; // Clustered objective markers
+    this.allObjectivesGeoJSON = null; // All loaded objectives
 
+    // Timers & intervals
     this.hpInterval = null;
     this.shrinkTimeout = null;
+    this.pollingInterval = null;
 
     this.SHRINK_INTERVAL_MS = 60000;
     this.OBJECTIVE_GRAB_RANGE = 30;
 
+    // UI & helpers
     this.icons = setupIcons();
+    this.isLoadingObjectives = false;
+
+    // Initial setup
     this.setupEventListeners();
     this.loadFullStateFromServer();
-
-    this.isLoadingObjectives = false;
   }
 
   async store() {
-    // Joined as player 2
     if (this.gameId) {
-      //await this.createAndSavePlayers();
+      // Joined as player 2
       await this.loadFullStateFromServer();
       return;
     }
@@ -91,6 +97,9 @@ export class BattleRoyaleGame {
     await this.loadFullStateFromServer();
   }
 
+  /**
+   * Syncs the countdown timer with server time after a shrink.
+   */
   async updateShrinkTimerFromServer() {
     if (!this.gameState.lastShrinkTimestamp) return;
 
@@ -100,6 +109,9 @@ export class BattleRoyaleGame {
     await this.startCountdown(this.SHRINK_INTERVAL_MS, remaining);
   }
 
+  /**
+   * Starts or updates the countdown timer displayed in the UI.
+   */
   async startCountdown(durationMs, initialRemainingMs = durationMs) {
     const targetTime = Date.now() + initialRemainingMs;
     const timerEl = document.getElementById("timer");
@@ -122,6 +134,9 @@ export class BattleRoyaleGame {
       window.countdownInterval = setInterval(update, 1000);
   }
 
+  /**
+   * Loads complete game state from server and initializes UI/map.
+   */
   async loadFullStateFromServer() {
     if (!this.gameId) return;
     try {
@@ -161,6 +176,11 @@ export class BattleRoyaleGame {
         await this.updateShrinkTimerFromServer();
         if (this.controlledPlayerId === 1) {
           this.startHPMonitor();
+          const remaining = Math.max(
+            0,
+            this.SHRINK_INTERVAL_MS -
+              (Date.now() - (this.gameState.lastShrinkTimestamp || Date.now()))
+          );
           await this.startShrinkMonitor(remaining);
         }
       } else {
@@ -174,6 +194,9 @@ export class BattleRoyaleGame {
     }
   }
 
+  /**
+   * Starts periodic polling to keep client in sync with server.
+   */
   startPolling() {
     if (this.pollingInterval) clearInterval(this.pollingInterval);
 
@@ -202,8 +225,9 @@ export class BattleRoyaleGame {
           document.getElementById("configPanel").style.display = "none";
         }
         if (
-          data.gameState.status == "SETUP" &&
-          this.gameState.status == "ACTIVE"
+          (data.gameState.status == "SETUP" &&
+            this.gameState.status == "ACTIVE") ||
+          this.gameState.currentRadius === 0
         ) {
           await this.handleGameOver();
         }
@@ -230,7 +254,7 @@ export class BattleRoyaleGame {
             localPlayer.marker.setLatLng([serverPlayer.lat, serverPlayer.lon]);
           }
 
-          // --- STATS (always sync) ---
+          // STATS sync
           localPlayer.hp = serverPlayer.hp;
           localPlayer.score = serverPlayer.score;
           localPlayer.visitedObjectives = new Set(
@@ -250,7 +274,6 @@ export class BattleRoyaleGame {
         // Refresh objectives display
         if (this.gameState.status === "ACTIVE") {
           if (!this.allObjectivesGeoJSON && !this.objectiveClusterLayer) {
-            console.log("HELLOOOOOO");
             await this.loadAllObjectivesOnce();
           } else if (!this.objectiveClusterLayer)
             await this.buildObjectiveLayer();
@@ -302,6 +325,9 @@ export class BattleRoyaleGame {
     this.updateDraggable();
   }
 
+  /**
+   * Enables dragging only for the controlled player when alive.
+   */
   updateDraggable() {
     Object.values(this.players).forEach((p) => {
       const allowed = p.id === this.controlledPlayerId && p.hp > 0;
@@ -309,6 +335,9 @@ export class BattleRoyaleGame {
     });
   }
 
+  /**
+   * Renders player HUDs (health bars, scores).
+   */
   renderHUD() {
     const hudsEl = document.getElementById("player-huds");
     hudsEl.innerHTML = "";
@@ -336,6 +365,9 @@ export class BattleRoyaleGame {
       });
   }
 
+  /**
+   * Builds the clustered layer of objective markers.
+   */
   async buildObjectiveLayer() {
     if (!this.objectiveClusterLayer) {
       this.objectiveClusterLayer = new L.markerClusterGroup({
@@ -360,7 +392,9 @@ export class BattleRoyaleGame {
     await this.filterObjectivesInZone();
   }
 
-  //Load ALL objectives once at game start
+  /**
+   * Load All Objectives as game start or open
+   */
   async loadAllObjectivesOnce(maxRetries = 3, retryDelay = 2000) {
     if (this.allObjectivesGeoJSON || this.isLoadingObjectives) return;
 
@@ -404,6 +438,9 @@ export class BattleRoyaleGame {
     document.getElementById("loadingOverlay").style.display = "none";
   }
 
+  /**
+   * Filter out the objectives outside of the zone
+   */
   async filterObjectivesInZone() {
     if (
       !this.objectiveClusterLayer ||
@@ -432,6 +469,9 @@ export class BattleRoyaleGame {
     this.objectiveClusterLayer.refreshClusters();
   }
 
+  /**
+   * Handle Circle Radius change
+   */
   async updateCircle() {
     const center = this.gameState.safeZoneCenter;
     const radius = this.gameState.currentRadius;
@@ -456,6 +496,9 @@ export class BattleRoyaleGame {
     await this.filterObjectivesInZone();
   }
 
+  /**
+   * After Game Start clicked
+   */
   async startGame() {
     const selected = Array.from(
       document.querySelectorAll("#checkboxes input:checked")
@@ -498,8 +541,11 @@ export class BattleRoyaleGame {
     await this.updateCircle();
     document.getElementById("configPanel").classList.add("game-active");
     document.getElementById("endGameButton").style.display = "inline-block";
-    await this.startCountdown(this.SHRINK_INTERVAL_MS, this.SHRINK_INTERVAL_MS);
     if (this.controlledPlayerId === 1) {
+      await this.startCountdown(
+        this.SHRINK_INTERVAL_MS,
+        this.SHRINK_INTERVAL_MS
+      );
       this.startHPMonitor();
       await this.startShrinkMonitor(this.SHRINK_INTERVAL_MS);
     }
@@ -509,6 +555,9 @@ export class BattleRoyaleGame {
     document.getElementById("loadingOverlay").style.display = "none";
   }
 
+  /**
+   * Start the Circle Shrink
+   */
   async startShrinkMonitor(remainingMs = this.SHRINK_INTERVAL_MS) {
     if (!this.gameId) return;
     if (this.shrinkTimeout) clearTimeout(this.shrinkTimeout);
@@ -517,14 +566,15 @@ export class BattleRoyaleGame {
         0,
         this.gameState.currentRadius - this.gameState.shrinkAmountMeters
       );
-      if (this.gameState.currentRadius <= 0) return await this.handleGameOver();
 
       this.gameState.lastShrinkTimestamp = Date.now();
 
-      GameAPI.updateGameState(this.gameId, {
+      await GameAPI.updateGameState(this.gameId, {
         currentRadius: this.gameState.currentRadius,
         lastShrinkTimestamp: this.gameState.lastShrinkTimestamp,
       });
+
+      if (this.gameState.currentRadius <= 0) return await this.handleGameOver();
 
       await this.updateCircle();
       await this.updateShrinkTimerFromServer();
@@ -532,6 +582,9 @@ export class BattleRoyaleGame {
     }, remainingMs);
   }
 
+  /**
+   * Periodically damages players outside the safe zone (host only).
+   */
   startHPMonitor() {
     if (this.controlledPlayerId !== 1) return;
     if (this.hpInterval) clearInterval(this.hpInterval);
@@ -558,22 +611,26 @@ export class BattleRoyaleGame {
       }
       if (changed) this.renderHUD();
 
+      // Check endgame condition
       if (Object.values(this.players).filter((p) => p.hp > 0).length == 0)
         await this.handleGameOver();
     }, 1000);
   }
 
+  /**
+   * Handles Game Restart
+   */
   async handleGameReset() {
-    // Stop polling
+    // Stop polling and clear all timers
     if (this.pollingInterval) {
       clearInterval(this.pollingInterval);
       this.pollingInterval = null;
     }
-
     clearInterval(this.hpInterval);
     if (this.shrinkTimeout) clearTimeout(this.shrinkTimeout);
     clearInterval(window.countdownInterval);
 
+    // Reset state
     this.gameState = {
       ...this.gameState,
       status: "SETUP",
@@ -588,12 +645,16 @@ export class BattleRoyaleGame {
       this.objectiveClusterLayer = null;
     }
 
-    document.getElementById("configPanel").style.display = "block";
-    document.getElementById("configPanel").classList.remove("game-active");
+    // UI reset
+    if (this.controlledPlayerId === 1) {
+      document.getElementById("configPanel").style.display = "block";
+      document.getElementById("configPanel").classList.remove("game-active");
+    }
     document.getElementById("endGameButton").style.display = "none";
     document.getElementById("timer").textContent = "Next shrink in: --:--";
     document.getElementById("startGameButton").disabled = false;
 
+    // Reset players
     for (const p of Object.values(this.players)) {
       p.hp = 100;
       p.score = 0;
@@ -616,6 +677,9 @@ export class BattleRoyaleGame {
     this.startPolling();
   }
 
+  /**
+   * Shows final scoreboard and allows restart.
+   */
   async handleGameOver() {
     clearInterval(this.hpInterval);
     if (this.shrinkTimeout) clearTimeout(this.shrinkTimeout);
@@ -646,6 +710,9 @@ export class BattleRoyaleGame {
     };
   }
 
+  /**
+   * Handles location search and repositioning of players/zone.
+   */
   async handleSearch() {
     const q = document.getElementById("searchBox").value.trim();
     if (!q) return;
@@ -686,6 +753,9 @@ export class BattleRoyaleGame {
     }
   }
 
+  /**
+   * Sets up UI event listeners (only for host).
+   */
   setupEventListeners() {
     if (this.controlledPlayerId !== 1) return;
     document.getElementById("startGameButton").onclick = () => this.startGame();

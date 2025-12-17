@@ -1,5 +1,38 @@
 {
   "games": {
-   
+    "c9b06ee4-083e-4a1c-8ade-0462ebe0424e": {
+      "gameState": {
+        "status": "ACTIVE",
+        "safeZoneCenter": [
+          49.01578,
+          8.39137
+        ],
+        "currentRadius": 1000,
+        "objectiveTypes": [
+          "restaurant",
+          "cafe"
+        ],
+        "lastShrinkTimestamp": 1765987352114,
+        "shrinkAmountMeters": 1000
+      },
+      "players": [
+        {
+          "id": 1,
+          "lat": 49.0170506722569,
+          "lon": 8.38979488083738,
+          "hp": 100,
+          "score": 0,
+          "visitedObjectives": []
+        },
+        {
+          "id": 2,
+          "lat": 49.013414285634155,
+          "lon": 8.392178649363151,
+          "hp": 100,
+          "score": 0,
+          "visitedObjectives": []
+        }
+      ]
+    }
   }
 }
