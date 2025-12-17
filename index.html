@@ -4,21 +4,14 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>City Explorer – 2-Player Battle Royale</title>
-
-    <!-- Leaflet -->
+    <title>City Explorer Battle Royale</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-    <!-- Marker Cluster -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
     <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster-src.js"></script>
 
     <style>
-        /* =========================
-       GLOBAL LAYOUT
-    ========================== */
         html,
         body {
             height: 100%;
@@ -33,9 +26,6 @@
             width: 100%;
         }
 
-        /* =========================
-       LOADING OVERLAY
-    ========================== */
         #loadingOverlay {
             position: fixed;
             inset: 0;
@@ -66,9 +56,6 @@
             }
         }
 
-        /* =========================
-       CONFIG PANEL
-    ========================== */
         #configPanel {
             position: absolute;
             top: 15px;
@@ -178,9 +165,6 @@
             cursor: pointer;
         }
 
-        /* =========================
-       INVITE BOX
-    ========================== */
         #inviteBox {
             margin-top: 12px;
             background: #eef5ff;
@@ -194,9 +178,6 @@
             color: #007bff;
         }
 
-        /* =========================
-       BOTTOM HUD
-    ========================== */
 
         #bottom-bar {
             position: absolute;
@@ -245,9 +226,6 @@
             color: #00d4ff;
         }
 
-        /* =========================
-       SCOREBOARD
-    ========================== */
         #scoreboardOverlay {
             position: fixed;
             inset: 0;
