@@ -186,6 +186,7 @@ app.post("/api/players/create", async (req, res) => {
     hp: 100,
     score: 0,
     visitedObjectives: [],
+    ready: false
   };
 
   game.players.push(player);
@@ -196,7 +197,7 @@ app.post("/api/players/create", async (req, res) => {
 
 // Update player position, score, hp, etc.
 app.post("/api/players/update", async (req, res) => {
-  const { gameId, id, lat, lon, hp, score, visitedObjectives } = req.body;
+  const { gameId, id, lat, lon, hp, score, visitedObjectives, ready } = req.body;
   const db = await readDB();
 
   const game = db.games[gameId];
@@ -210,10 +211,9 @@ app.post("/api/players/update", async (req, res) => {
   if (lon !== undefined) player.lon = lon;
   if (hp !== undefined) player.hp = hp;
   if (score !== undefined) player.score = score;
+  if (ready !== undefined) player.ready = ready
   if (visitedObjectives !== undefined)
     player.visitedObjectives = visitedObjectives;
-
-  console.log("Updated player:", player);
 
   await writeDB(db);
   res.json({ ok: true, player });

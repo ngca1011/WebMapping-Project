@@ -224,6 +224,8 @@ export class BattleRoyaleGame {
         ) {
           document.getElementById("configPanel").style.display = "none";
         }
+
+        // From active to setup or end game
         if (
           (data.gameState.status == "SETUP" &&
             this.gameState.status == "ACTIVE") ||
@@ -261,6 +263,7 @@ export class BattleRoyaleGame {
             serverPlayer.visitedObjectives || []
           );
           localPlayer.marker.setOpacity(serverPlayer.hp > 0 ? 1 : 0.4);
+          localPlayer.ready = serverPlayer.ready;
         });
 
         // Update circle if radius changed
@@ -278,11 +281,18 @@ export class BattleRoyaleGame {
           } else if (!this.objectiveClusterLayer)
             await this.buildObjectiveLayer();
 
+          // Start Timer when all players are ready
           if (
             data.gameState?.lastShrinkTimestamp &&
             data.gameState.lastShrinkTimestamp !== prevShrinkTs
           ) {
-            await this.updateShrinkTimerFromServer();
+            let allReady = true;
+            Object.values(this.players).forEach((p) => {
+              if (!p.ready) allReady = false;
+            });
+            console.log(allReady);
+            console.log(data.players);
+            if (allReady) await this.updateShrinkTimerFromServer();
           }
         }
 
@@ -434,8 +444,41 @@ export class BattleRoyaleGame {
         this.isLoadingObjectives = false;
       }
     }
-
     document.getElementById("loadingOverlay").style.display = "none";
+
+    // Set the current User as Ready after loaded all the Objectives
+    this.players[this.controlledPlayerId].ready = true;
+    await this.players[this.controlledPlayerId].save();
+
+    if (this.controlledPlayerId === 1) {
+      await this.checkAllPlayersReady();
+    }
+  }
+
+  /**
+   * After objective loaded, check if all players also have their objectives loaded
+   * Only start timer and shrink by Host when the players are ready
+   */
+  async checkAllPlayersReady() {
+    const data = await GameAPI.getGame(this.gameId);
+    const allReady = data.players.every((p) => p.ready);
+
+    if (allReady) {
+      console.log("All players READY! Starting timers...");
+      // Start HP monitor & shrink monitor for host
+      this.startHPMonitor();
+      await this.startCountdown(
+        this.SHRINK_INTERVAL_MS,
+        this.SHRINK_INTERVAL_MS
+      );
+      await this.startShrinkMonitor(this.SHRINK_INTERVAL_MS);
+      await GameAPI.updateGameState(this.gameId, {
+        lastShrinkTimestamp: Date.now(),
+      });
+    } else {
+      // Poll again in 500ms
+      setTimeout(() => this.checkAllPlayersReady(), 500);
+    }
   }
 
   /**
@@ -533,7 +576,6 @@ export class BattleRoyaleGame {
       safeZoneCenter: this.city_coord,
       currentRadius: radius,
       objectiveTypes: selected,
-      lastShrinkTimestamp: Date.now(),
       shrinkAmountMeters: this.gameState.shrinkAmountMeters,
     });
 
@@ -541,14 +583,6 @@ export class BattleRoyaleGame {
     await this.updateCircle();
     document.getElementById("configPanel").classList.add("game-active");
     document.getElementById("endGameButton").style.display = "inline-block";
-    if (this.controlledPlayerId === 1) {
-      await this.startCountdown(
-        this.SHRINK_INTERVAL_MS,
-        this.SHRINK_INTERVAL_MS
-      );
-      this.startHPMonitor();
-      await this.startShrinkMonitor(this.SHRINK_INTERVAL_MS);
-    }
     this.renderHUD();
     this.updateDraggable();
 

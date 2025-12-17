@@ -10,6 +10,7 @@ export class Player {
     this.visitedObjectives = new Set(visitedObjectives);
     this.marker = this.createMarker();
     this.isDragging = false;
+    this.ready = false;
 
     this.marker.on("dragstart", () => (this.isDragging = true));
     this.marker.on("dragend", () => (this.isDragging = false));
@@ -107,6 +108,7 @@ export class Player {
         gameId: this.game.gameId,
         hp: this.hp,
         id: this.id,
+        ready: this.ready
       };
       if (!hpUpdate)
         payload = {
