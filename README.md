@@ -27,6 +27,20 @@ A lightweight **2-player, browser-based battle royale game** built with **Leafle
 
 ## How to Run
 
+Before running the game with Live Server in VScode. Please follow these steps:
+
+1. ![alt text](image.png)
+
+Go to the Setting in VSCode, look for Live Server, then go "Edit in settings.json"
+
+2. ![alt text](image-1.png)
+
+Add the path to db.json like above to the files that Live Server should ignore.
+
+
+These steps are needed to make sure that LiveServer doesn't reset everytime new data is written in DB.json file.
+
+
 ```bash
 npm install
 node server.js
